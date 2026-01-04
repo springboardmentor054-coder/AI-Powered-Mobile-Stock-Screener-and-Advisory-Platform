@@ -70,3 +70,5 @@ Fields:
 - promoter_holding_percentage (float): Promoter ownership %
 - institutional_holding_percentage (float): FII/DII holding
 - last_updated (date): Last update date
+
+1E1M5U84QO50L7FK - Alpha Vantage
