@@ -1,3 +1,9 @@
+/* Schema for Stock Market Database */
+/* This table stores basic identity information of listed stocks.
+Why needed
+To filter by IT sector
+To show stock names in results*/
+
 CREATE TABLE stocks (
     symbol VARCHAR(10) PRIMARY KEY,
     company_name VARCHAR(100) NOT NULL,
@@ -6,6 +12,12 @@ CREATE TABLE stocks (
     industry VARCHAR(100),
     is_active BOOLEAN DEFAULT TRUE
 );
+
+/*This supports filters like PEG, PE, debt.
+This table stores key financial ratios and balance sheet indicators used for screening.
+Your query includes:
+PEG ratio
+Debt vs free cash flow*/
 
 CREATE TABLE fundamentals (
     symbol VARCHAR(10) REFERENCES stocks(symbol),
@@ -18,6 +30,8 @@ CREATE TABLE fundamentals (
     PRIMARY KEY (symbol)
 );
 
+--- This table stores revenue and EBITDA to analyze growth trends.
+
 CREATE TABLE financials (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(10) REFERENCES stocks(symbol),
@@ -29,6 +43,9 @@ CREATE TABLE financials (
     ebitda_yoy_growth FLOAT
 );
 
+/*Your query checks:
+“companies that have announced stock buybacks”*/
+
 CREATE TABLE corporate_actions (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(10) REFERENCES stocks(symbol),
@@ -37,6 +54,12 @@ CREATE TABLE corporate_actions (
     details TEXT,
     is_active BOOLEAN
 );
+
+/* This table stores earnings schedules and analyst expectations.
+
+Your query requires:
+Upcoming earnings in 30 days
+Likely to beat estimates*/
 
 CREATE TABLE earnings_analyst_data (
     symbol VARCHAR(10) REFERENCES stocks(symbol),
@@ -49,6 +72,12 @@ CREATE TABLE earnings_analyst_data (
     current_price FLOAT,
     PRIMARY KEY (symbol)
 );
+
+/*Your example includes:
+“promoter holding above 50%”
+
+This table tracks ownership details.
+*/
 
 CREATE TABLE shareholding (
     symbol VARCHAR(10) REFERENCES stocks(symbol),
