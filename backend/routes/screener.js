@@ -4,21 +4,83 @@ const { compileDSLToSQL } = require("../services/screenerCompiler");
 
 const router = express.Router();
 
-router.post("/run", (req, res) => {
-  const { query } = req.body;
+router.post("/run", async (req, res) => {
+  try {
+    const { query } = req.body;
 
-  if (!query) {
-    return res.status(400).json({ message: "Query required" });
+    // Validate input
+    if (!query) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Query is required",
+        error: "MISSING_QUERY"
+      });
+    }
+
+    if (typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Query must be a non-empty string",
+        error: "INVALID_QUERY_FORMAT"
+      });
+    }
+
+    // Parse query to DSL
+    const parseResult = parseQueryToDSL(query);
+    
+    // Check if parsing failed
+    if (parseResult.error) {
+      return res.status(400).json({ 
+        success: false,
+        message: parseResult.message,
+        error: "PARSING_FAILED",
+        details: parseResult.details || parseResult.validationErrors,
+        userQuery: query
+      });
+    }
+
+    // Compile DSL to SQL
+    const sqlResult = compileDSLToSQL(parseResult.dsl);
+    
+    // Check if SQL compilation failed
+    if (sqlResult.error) {
+      return res.status(500).json({ 
+        success: false,
+        message: sqlResult.message,
+        error: "SQL_COMPILATION_FAILED",
+        details: sqlResult.details,
+        userQuery: query,
+        parsedDSL: parseResult.dsl
+      });
+    }
+
+    // Success response
+    res.json({
+      success: true,
+      userQuery: query,
+      parsedDSL: parseResult.dsl,
+      generatedSQL: sqlResult.sql,
+      conditionsCount: parseResult.dsl.conditions.length,
+      note: "SQL execution will be enabled in next sprint"
+    });
+
+  } catch (error) {
+    console.error('Screener error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error while processing query",
+      error: "INTERNAL_ERROR",
+      details: error.message
+    });
   }
+});
 
-  const dsl = parseQueryToDSL(query);
-  const sql = compileDSLToSQL(dsl);
-
-  res.json({
-    userQuery: query,
-    parsedDSL: dsl,
-    generatedSQL: sql,
-    note: "SQL execution will be enabled in next sprint"
+// Health check endpoint
+router.get("/health", (req, res) => {
+  res.json({ 
+    status: "operational",
+    service: "screener",
+    timestamp: new Date().toISOString()
   });
 });
 
