@@ -18,6 +18,20 @@ const FIELD_TO_TABLE = {
   'institutional_ownership_percentage': 's'
 };
 
+// Map LLM sector names to database sector names
+const SECTOR_MAPPING = {
+  'Technology': 'TECHNOLOGY',
+  'IT': 'TECHNOLOGY',
+  'Financials': 'FINANCIAL SERVICES',
+  'Financial': 'FINANCIAL SERVICES',
+  'Financial Services': 'FINANCIAL SERVICES',
+  'Healthcare': 'HEALTHCARE',
+  'Consumer': 'CONSUMER',
+  'Energy': 'ENERGY',
+  'Industrials': 'INDUSTRIALS',
+  'Communication Services': 'COMMUNICATION SERVICES'
+};
+
 /**
  * Escapes SQL values to prevent injection
  * @param {any} value - Value to escape
@@ -74,10 +88,12 @@ function compileDSLToSQL(dsl) {
     WHERE s.is_active = TRUE
   `;
 
-    // Add sector filter with SQL injection prevention
+    // Add sector filter with mapping and case-insensitive matching
     if (dsl.sector && typeof dsl.sector === 'string') {
-      const safeSector = dsl.sector.replace(/'/g, "''").replace(/[;\\]/g, '');
-      baseQuery += ` AND s.sector = '${safeSector}'`;
+      // Map LLM sector to database sector
+      const mappedSector = SECTOR_MAPPING[dsl.sector] || dsl.sector;
+      const safeSector = mappedSector.replace(/'/g, "''").replace(/[;\\]/g, '');
+      baseQuery += ` AND UPPER(s.sector) = UPPER('${safeSector}')`;
     }
 
     // Add condition filters

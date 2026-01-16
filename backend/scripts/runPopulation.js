@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { populateAllStocks } = require("./populateDatabase");
+const { populateAllStocks, populateCorporateActions, populateEarningsAnalystData } = require("./populateDatabase");
 const db = require("../config/database");
 
 /**
@@ -58,6 +58,20 @@ async function main() {
   
   try {
     const results = await populateAllStocks(limit, sector);
+    
+    // Populate corporate actions
+    console.log("\n" + "=".repeat(60));
+    const corporateResult = await populateCorporateActions();
+    if (!corporateResult.success) {
+      console.warn(`⚠️  Corporate actions population failed: ${corporateResult.error}`);
+    }
+    
+    // Populate earnings analyst data (refresh existing data)
+    console.log("\n" + "=".repeat(60));
+    const earningsResult = await populateEarningsAnalystData();
+    if (!earningsResult.success) {
+      console.warn(`⚠️  Earnings analyst data update failed: ${earningsResult.error}`);
+    }
     
     const duration = ((Date.now() - startTime) / 1000 / 60).toFixed(2);
     

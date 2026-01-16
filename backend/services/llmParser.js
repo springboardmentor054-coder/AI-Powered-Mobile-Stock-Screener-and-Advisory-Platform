@@ -1,3 +1,10 @@
+const Groq = require('groq-sdk');
+
+// Initialize Groq client (free LLM API)
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
+
 // Valid database fields across all tables
 const VALID_FIELDS = [
   // Fundamentals table
@@ -14,56 +21,101 @@ const VALID_FIELDS = [
   // Stocks table
   'market_cap', 'employees', 'average_volume', 'shares_outstanding',
   'insider_ownership_percentage', 'institutional_ownership_percentage',
-  // Financials table (for aggregated queries)
+  // Financials table
   'revenue', 'ebitda', 'revenue_yoy_growth', 'ebitda_yoy_growth',
   'gross_profit', 'operating_income', 'net_income', 'gross_margin',
-  'operating_margin', 'net_margin', 'eps_basic', 'eps_diluted'
+  'net_margin', 'eps_basic', 'eps_diluted',
+  // Earnings table
+  'earnings_date', 'estimated_eps', 'expected_revenue', 'beat_probability',
+  'analyst_target_price_low', 'analyst_target_price_high', 'current_price',
+  'analyst_count', 'consensus_rating'
 ];
 
 const VALID_OPERATORS = ['<', '>', '<=', '>=', '=', '!='];
-const VALID_SECTORS = ['IT', 'Technology', 'Software', 'Hardware', 'Telecom', 'Finance', 'Healthcare'];
+const VALID_SECTORS = ['Technology', 'IT', 'Financials', 'Healthcare', 'Consumer', 'Energy', 'Industrials', 'Communication Services'];
 
 /**
- * Validates the DSL structure to ensure it's safe for SQL compilation
- * @param {Object} dsl - The DSL object to validate
- * @returns {Object} - { valid: boolean, errors: string[] }
+ * System prompt for the LLM to convert natural language to DSL
+ */
+const SYSTEM_PROMPT = `You are a stock screener query parser. Convert natural language queries into a structured DSL format.
+
+Database Schema:
+- stocks: symbol, company_name, sector (${VALID_SECTORS.join(', ')}), industry, market_cap, employees
+- fundamentals: pe_ratio, peg_ratio, pb_ratio, ps_ratio, dividend_yield, beta, eps, profit_margin, operating_margin, return_on_equity, return_on_assets, debt_to_equity_ratio, total_debt, free_cash_flow, debt_to_fcf_ratio
+- shareholding: promoter_holding_percentage, institutional_holding_percentage, public_holding_percentage
+- financials: revenue, ebitda, revenue_yoy_growth, ebitda_yoy_growth, gross_margin, net_margin
+- earnings_analyst_data: earnings_date, estimated_eps, beat_probability, analyst_target_price_low, analyst_target_price_high, analyst_count, consensus_rating
+- corporate_actions: action_type (stock_buyback, dividend, stock_split), announcement_date, amount
+
+Valid operators: <, >, <=, >=, =, !=
+
+Output JSON format:
+{
+  "sector": "string or null",
+  "conditions": [
+    {
+      "field": "field_name",
+      "operator": "< or > or = etc",
+      "value": number or string
+    }
+  ],
+  "specialFilters": {
+    "hasUpcomingEarnings": boolean,
+    "earningsWithinDays": number,
+    "hasStockBuyback": boolean,
+    "minAnalystCount": number
+  }
+}
+
+Examples:
+Query: "IT companies with PEG ratio less than 1.5"
+Output: {"sector": "Technology", "conditions": [{"field": "peg_ratio", "operator": "<", "value": 1.5}], "specialFilters": {}}
+
+Query: "Companies with upcoming earnings in 30 days and likely to beat estimates"
+Output: {"sector": null, "conditions": [{"field": "beat_probability", "operator": ">", "value": 60}], "specialFilters": {"hasUpcomingEarnings": true, "earningsWithinDays": 30}}
+
+Query: "Financial stocks with PE ratio below 15 and promoter holding above 50%"
+Output: {"sector": "Financials", "conditions": [{"field": "pe_ratio", "operator": "<", "value": 15}, {"field": "promoter_holding_percentage", "operator": ">", "value": 50}], "specialFilters": {}}
+
+Query: "Companies that announced stock buybacks"
+Output: {"sector": null, "conditions": [], "specialFilters": {"hasStockBuyback": true}}
+
+IMPORTANT: 
+- Only use fields from the schema above
+- Always return valid JSON
+- Use "Technology" or "IT" for tech sector
+- Percentages are stored as numbers (50 not 0.5)
+- Return empty specialFilters object if no special filters needed`;
+
+/**
+ * Validates the DSL structure
  */
 function validateDSL(dsl) {
   const errors = [];
 
-  // Check basic structure
   if (!dsl || typeof dsl !== 'object') {
     return { valid: false, errors: ['DSL must be an object'] };
   }
 
-  // Validate sector if provided
-  if (dsl.sector && typeof dsl.sector !== 'string') {
-    errors.push('Sector must be a string');
+  // Validate sector
+  if (dsl.sector && !VALID_SECTORS.includes(dsl.sector)) {
+    errors.push(`Invalid sector '${dsl.sector}'. Must be one of: ${VALID_SECTORS.join(', ')}`);
   }
 
-  // Validate conditions array
+  // Validate conditions
   if (!Array.isArray(dsl.conditions)) {
     return { valid: false, errors: ['Conditions must be an array'] };
   }
 
-  // Validate each condition
   dsl.conditions.forEach((condition, index) => {
-    if (!condition.field || typeof condition.field !== 'string') {
-      errors.push(`Condition ${index}: field is required and must be a string`);
-    } else if (!VALID_FIELDS.includes(condition.field)) {
-      errors.push(`Condition ${index}: invalid field '${condition.field}'. Must be one of: ${VALID_FIELDS.join(', ')}`);
+    if (!VALID_FIELDS.includes(condition.field)) {
+      errors.push(`Condition ${index}: invalid field '${condition.field}'`);
     }
-
-    if (!condition.operator || typeof condition.operator !== 'string') {
-      errors.push(`Condition ${index}: operator is required and must be a string`);
-    } else if (!VALID_OPERATORS.includes(condition.operator)) {
-      errors.push(`Condition ${index}: invalid operator '${condition.operator}'. Must be one of: ${VALID_OPERATORS.join(', ')}`);
+    if (!VALID_OPERATORS.includes(condition.operator)) {
+      errors.push(`Condition ${index}: invalid operator '${condition.operator}'`);
     }
-
     if (condition.value === undefined || condition.value === null) {
       errors.push(`Condition ${index}: value is required`);
-    } else if (typeof condition.value !== 'number' && typeof condition.value !== 'string') {
-      errors.push(`Condition ${index}: value must be a number or string`);
     }
   });
 
@@ -74,11 +126,9 @@ function validateDSL(dsl) {
 }
 
 /**
- * Parses user query into DSL format with error handling
- * @param {string} query - User's natural language query
- * @returns {Object} - DSL object or error object
+ * Parses user query into DSL format using OpenAI GPT
  */
-function parseQueryToDSL(query) {
+async function parseQueryToDSL(query) {
   try {
     // Validate input
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
@@ -89,27 +139,95 @@ function parseQueryToDSL(query) {
       };
     }
 
-    // Simple keyword-based parsing (Sprint-2 level)
+    // Check if Groq API key is configured
+    if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'your-groq-api-key-here') {
+      console.warn('Groq API key not configured, using fallback parser');
+      return fallbackParser(query);
+    }
+
+    console.log(`Parsing query with LLM: "${query}"`);
+
+    // Call Groq API (FREE!)
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile", // Fast, free, powerful model
+      messages: [
+        {
+          role: "system",
+          content: SYSTEM_PROMPT
+        },
+        {
+          role: "user",
+          content: `Parse this stock screener query: "${query}"`
+        }
+      ],
+      temperature: 0.1, // Low temperature for consistent parsing
+      max_tokens: 500,
+      response_format: { type: "json_object" }
+    });
+
+    // Extract DSL from response
+    const responseText = completion.choices[0].message.content;
+    const dsl = JSON.parse(responseText);
+
+    // Ensure specialFilters exists
+    if (!dsl.specialFilters) {
+      dsl.specialFilters = {};
+    }
+
+    // Validate the generated DSL
+    const validation = validateDSL(dsl);
+    if (!validation.valid) {
+      return {
+        error: true,
+        message: 'LLM generated invalid DSL',
+        validationErrors: validation.errors,
+        dsl: null
+      };
+    }
+
+    console.log('✓ Successfully parsed query with LLM');
+    return {
+      error: false,
+      dsl,
+      message: 'Query parsed successfully',
+      usedLLM: true
+    };
+
+  } catch (error) {
+    console.error('Error parsing query with LLM:', error.message);
+    
+    // Fallback to simple parser if LLM fails
+    console.log('Falling back to simple parser...');
+    return fallbackParser(query);
+  }
+}
+
+/**
+ * Fallback parser using simple keyword matching (when LLM is unavailable)
+ */
+function fallbackParser(query) {
+  try {
     const dsl = {
       sector: null,
-      conditions: []
+      conditions: [],
+      specialFilters: {}
     };
 
     const lowerQuery = query.toLowerCase();
 
     // Parse sector
     if (lowerQuery.includes("it") || lowerQuery.includes("technology")) {
-      dsl.sector = "IT";
-    } else if (lowerQuery.includes("software")) {
-      dsl.sector = "Software";
-    } else if (lowerQuery.includes("hardware")) {
-      dsl.sector = "Hardware";
+      dsl.sector = "Technology";
+    } else if (lowerQuery.includes("financial") || lowerQuery.includes("finance")) {
+      dsl.sector = "Financials";
+    } else if (lowerQuery.includes("healthcare") || lowerQuery.includes("health")) {
+      dsl.sector = "Healthcare";
     }
 
-    // Parse PEG ratio conditions
+    // Parse PEG ratio
     if (lowerQuery.includes("peg")) {
       const pegMatch = query.match(/peg.*?(less than|below|<)\s*(\d+\.?\d*)/i);
-      const pegValue = pegMatch ? parseFloat(pegMatch[2]) : 3;
+      const pegValue = pegMatch ? parseFloat(pegMatch[2]) : 1.5;
       dsl.conditions.push({
         field: "peg_ratio",
         operator: "<",
@@ -117,7 +235,7 @@ function parseQueryToDSL(query) {
       });
     }
 
-    // Parse PE ratio conditions
+    // Parse PE ratio
     if (lowerQuery.includes("pe") && !lowerQuery.includes("peg")) {
       const peMatch = query.match(/pe.*?(less than|below|<)\s*(\d+\.?\d*)/i);
       const peValue = peMatch ? parseFloat(peMatch[2]) : 15;
@@ -128,7 +246,7 @@ function parseQueryToDSL(query) {
       });
     }
 
-    // Parse promoter holding conditions
+    // Parse promoter holding
     if (lowerQuery.includes("promoter")) {
       const promoterMatch = query.match(/promoter.*?(above|greater than|>)\s*(\d+\.?\d*)/i);
       const promoterValue = promoterMatch ? parseFloat(promoterMatch[2]) : 50;
@@ -139,7 +257,7 @@ function parseQueryToDSL(query) {
       });
     }
 
-    // Parse debt conditions
+    // Parse debt
     if (lowerQuery.includes("debt")) {
       dsl.conditions.push({
         field: "debt_to_fcf_ratio",
@@ -148,18 +266,27 @@ function parseQueryToDSL(query) {
       });
     }
 
-    // Parse dividend yield
-    if (lowerQuery.includes("dividend")) {
-      const divMatch = query.match(/dividend.*?(above|greater than|>)\s*(\d+\.?\d*)/i);
-      const divValue = divMatch ? parseFloat(divMatch[2]) : 2;
-      dsl.conditions.push({
-        field: "dividend_yield",
-        operator: ">",
-        value: divValue
-      });
+    // Parse earnings
+    if (lowerQuery.includes("earnings") || lowerQuery.includes("earning")) {
+      if (lowerQuery.includes("30 days") || lowerQuery.includes("upcoming")) {
+        dsl.specialFilters.hasUpcomingEarnings = true;
+        dsl.specialFilters.earningsWithinDays = 30;
+      }
+      if (lowerQuery.includes("beat")) {
+        dsl.conditions.push({
+          field: "beat_probability",
+          operator: ">",
+          value: 60
+        });
+      }
     }
 
-    // Validate the generated DSL
+    // Parse buyback
+    if (lowerQuery.includes("buyback") || lowerQuery.includes("buy back") || lowerQuery.includes("repurchase")) {
+      dsl.specialFilters.hasStockBuyback = true;
+    }
+
+    // Validate
     const validation = validateDSL(dsl);
     if (!validation.valid) {
       return {
@@ -173,11 +300,12 @@ function parseQueryToDSL(query) {
     return {
       error: false,
       dsl,
-      message: 'Query parsed successfully'
+      message: 'Query parsed successfully (fallback parser)',
+      usedLLM: false
     };
 
   } catch (error) {
-    console.error('Error parsing query:', error);
+    console.error('Error in fallback parser:', error);
     return {
       error: true,
       message: 'Failed to parse query',

@@ -105,16 +105,53 @@ async function insertFinancialPerformance(financialData) {
     revenue,
     ebitda,
     revenueYoyGrowth,
-    ebitdaYoyGrowth
+    ebitdaYoyGrowth,
+    grossProfit,
+    operatingIncome,
+    netIncome,
+    grossMargin,
+    operatingMargin,
+    netMargin,
+    epsBasic,
+    epsDiluted,
+    sharesOutstanding,
+    costOfRevenue,
+    researchDevelopment,
+    sellingGeneralAdmin,
+    totalAssets,
+    totalLiabilities
   } = financialData;
 
   const query = `
     INSERT INTO financials (
       symbol, period_type, period, revenue, ebitda,
-      revenue_yoy_growth, ebitda_yoy_growth
+      revenue_yoy_growth, ebitda_yoy_growth, gross_profit,
+      operating_income, net_income, gross_margin, operating_margin,
+      net_margin, eps_basic, eps_diluted, shares_outstanding,
+      cost_of_revenue, research_development, selling_general_admin,
+      total_assets, total_liabilities
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    ON CONFLICT (symbol, period_type, period) DO NOTHING
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+    ON CONFLICT (symbol, period_type, period) 
+    DO UPDATE SET
+      revenue = EXCLUDED.revenue,
+      ebitda = EXCLUDED.ebitda,
+      revenue_yoy_growth = EXCLUDED.revenue_yoy_growth,
+      ebitda_yoy_growth = EXCLUDED.ebitda_yoy_growth,
+      gross_profit = EXCLUDED.gross_profit,
+      operating_income = EXCLUDED.operating_income,
+      net_income = EXCLUDED.net_income,
+      gross_margin = EXCLUDED.gross_margin,
+      operating_margin = EXCLUDED.operating_margin,
+      net_margin = EXCLUDED.net_margin,
+      eps_basic = EXCLUDED.eps_basic,
+      eps_diluted = EXCLUDED.eps_diluted,
+      shares_outstanding = EXCLUDED.shares_outstanding,
+      cost_of_revenue = EXCLUDED.cost_of_revenue,
+      research_development = EXCLUDED.research_development,
+      selling_general_admin = EXCLUDED.selling_general_admin,
+      total_assets = EXCLUDED.total_assets,
+      total_liabilities = EXCLUDED.total_liabilities
     RETURNING *;
   `;
 
@@ -126,7 +163,21 @@ async function insertFinancialPerformance(financialData) {
       revenue,
       ebitda,
       revenueYoyGrowth,
-      ebitdaYoyGrowth
+      ebitdaYoyGrowth,
+      grossProfit || null,
+      operatingIncome || null,
+      netIncome || null,
+      grossMargin || null,
+      operatingMargin || null,
+      netMargin || null,
+      epsBasic || null,
+      epsDiluted || null,
+      sharesOutstanding || null,
+      costOfRevenue || null,
+      researchDevelopment || null,
+      sellingGeneralAdmin || null,
+      totalAssets || null,
+      totalLiabilities || null
     ]);
     return result.rows[0];
   } catch (error) {

@@ -1,6 +1,7 @@
 const express = require("express");
 const { parseQueryToDSL } = require("../services/llmParser");
 const { compileDSLToSQL } = require("../services/screenerCompiler");
+const pool = require("../config/database");
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.post("/run", async (req, res) => {
     }
 
     // Parse query to DSL
-    const parseResult = parseQueryToDSL(query);
+    const parseResult = await parseQueryToDSL(query);
     
     // Check if parsing failed
     if (parseResult.error) {
@@ -54,14 +55,20 @@ router.post("/run", async (req, res) => {
       });
     }
 
-    // Success response
+    // Execute SQL query
+    console.log('Executing SQL:', sqlResult.sql);
+    const result = await pool.query(sqlResult.sql);
+    const stocks = result.rows;
+
+    // Success response with actual data
     res.json({
       success: true,
       userQuery: query,
       parsedDSL: parseResult.dsl,
       generatedSQL: sqlResult.sql,
-      conditionsCount: parseResult.dsl.conditions.length,
-      note: "SQL execution will be enabled in next sprint"
+      resultsCount: stocks.length,
+      stocks: stocks,
+      usedLLM: parseResult.usedLLM || false
     });
 
   } catch (error) {

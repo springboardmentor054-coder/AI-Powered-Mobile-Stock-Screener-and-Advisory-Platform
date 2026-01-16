@@ -17,8 +17,10 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "groq-sdk": "^0.37.0",
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^3.0.3",
+    "openai": "^6.16.0",
     "pg": "^8.11.3",
     "yahoo-finance2": "^3.11.2"
   },
