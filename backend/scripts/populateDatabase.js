@@ -751,6 +751,372 @@ async function updateFinancialsWithMissingFields() {
   }
 }
 
+/**
+ * Update financials with shares outstanding from Yahoo Finance
+ */
+async function updateFinancialsWithSharesOutstanding() {
+  console.log('\n📊 Updating Financials with Shares Outstanding...');
+  
+  try {
+    // Get all unique stock symbols and periods
+    const result = await pool.query(
+      'SELECT DISTINCT symbol, period FROM financials ORDER BY symbol, period DESC'
+    );
+    
+    // Group by symbol
+    const stockPeriods = {};
+    result.rows.forEach(row => {
+      if (!stockPeriods[row.symbol]) {
+        stockPeriods[row.symbol] = [];
+      }
+      stockPeriods[row.symbol].push(row.period);
+    });
+    
+    const symbols = Object.keys(stockPeriods);
+    console.log(`Found ${symbols.length} stocks to update`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const symbol of symbols) {
+      try {
+        console.log(`  Processing ${symbol}...`);
+        
+        // Get shares outstanding from Yahoo Finance
+        const stats = await yahooFinanceService.getKeyStatistics(symbol);
+        await yahooFinanceService.delay(500);
+        
+        if (!stats.sharesOutstanding) {
+          console.log(`    ⚠️  No shares outstanding data for ${symbol}`);
+          errorCount++;
+          continue;
+        }
+        
+        // Update all periods for this stock with shares outstanding
+        for (const period of stockPeriods[symbol]) {
+          await pool.query(
+            'UPDATE financials SET shares_outstanding = $1 WHERE symbol = $2 AND period = $3',
+            [stats.sharesOutstanding, symbol, period]
+          );
+        }
+        
+        console.log(`    ✓ Updated ${stockPeriods[symbol].length} periods for ${symbol}`);
+        successCount++;
+        
+      } catch (error) {
+        console.error(`    ❌ Error processing ${symbol}:`, error.message);
+        errorCount++;
+      }
+    }
+    
+    console.log(`\n✅ Shares outstanding update complete`);
+    console.log(`   Success: ${successCount}, Errors: ${errorCount}`);
+    
+    return { success: true, successCount, errorCount };
+    
+  } catch (error) {
+    console.error('❌ Error updating shares outstanding:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update fundamentals table with missing fields from Yahoo Finance
+ * Populates: PB ratio, PS ratio, dividend yield, beta, EPS, book value per share,
+ * profit margin, operating margin, ROE, ROA, current ratio, quick ratio, 
+ * debt to equity ratio, interest coverage
+ */
+async function updateFundamentalsTable() {
+  try {
+    console.log('\n📊 Updating fundamentals table with Yahoo Finance data...\n');
+    
+    // Get all stocks from database
+    const stocksResult = await pool.query('SELECT DISTINCT symbol FROM stocks ORDER BY symbol');
+    const symbols = stocksResult.rows.map(row => row.symbol);
+    
+    console.log(`Found ${symbols.length} stocks to update\n`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const symbol of symbols) {
+      try {
+        console.log(`Processing ${symbol}...`);
+        
+        // Get fundamentals from Yahoo Finance
+        const fundamentals = await yahooFinanceService.getFundamentals(symbol);
+        
+        // Update fundamentals table
+        await pool.query(
+          `UPDATE fundamentals 
+           SET pb_ratio = $1,
+               ps_ratio = $2,
+               dividend_yield = $3,
+               beta = $4,
+               eps = $5,
+               book_value_per_share = $6,
+               profit_margin = $7,
+               operating_margin = $8,
+               return_on_equity = $9,
+               return_on_assets = $10,
+               current_ratio = $11,
+               quick_ratio = $12,
+               debt_to_equity_ratio = $13,
+               interest_coverage = $14
+           WHERE symbol = $15`,
+          [
+            fundamentals.pb_ratio,
+            fundamentals.ps_ratio,
+            fundamentals.dividend_yield,
+            fundamentals.beta,
+            fundamentals.eps,
+            fundamentals.book_value_per_share,
+            fundamentals.profit_margin,
+            fundamentals.operating_margin,
+            fundamentals.return_on_equity,
+            fundamentals.return_on_assets,
+            fundamentals.current_ratio,
+            fundamentals.quick_ratio,
+            fundamentals.debt_to_equity_ratio,
+            fundamentals.interest_coverage,
+            symbol
+          ]
+        );
+        
+        console.log(`  ✓ Updated ${symbol}`);
+        successCount++;
+        
+        // Small delay to be polite to Yahoo Finance
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error) {
+        console.error(`  ❌ Error processing ${symbol}:`, error.message);
+        errorCount++;
+      }
+    }
+    
+    console.log(`\n✅ Fundamentals update complete`);
+    console.log(`   Success: ${successCount}, Errors: ${errorCount}`);
+    
+    return { success: true, successCount, errorCount };
+    
+  } catch (error) {
+    console.error('❌ Error updating fundamentals:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Populate shareholding table with ownership data from Yahoo Finance
+ * Populates: insider/institutional/public holdings, insider transactions, major shareholders
+ */
+async function populateShareholdingTable() {
+  try {
+    console.log('\n📊 Populating shareholding table with Yahoo Finance data...\n');
+    
+    // Get all stocks from database
+    const stocksResult = await pool.query('SELECT DISTINCT symbol FROM stocks ORDER BY symbol');
+    const symbols = stocksResult.rows.map(row => row.symbol);
+    
+    console.log(`Found ${symbols.length} stocks to process\n`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const symbol of symbols) {
+      try {
+        console.log(`Processing ${symbol}...`);
+        
+        // Get shareholding data from Yahoo Finance
+        const shareholding = await yahooFinanceService.getShareholdingData(symbol);
+        
+        // Insert or update shareholding table
+        await pool.query(
+          `INSERT INTO shareholding (
+            symbol,
+            promoter_holding_percentage,
+            institutional_holding_percentage,
+            public_holding_percentage,
+            foreign_institutional_holding,
+            domestic_institutional_holding,
+            mutual_fund_holding,
+            retail_holding,
+            promoter_pledge_percentage,
+            shares_pledged,
+            total_shares,
+            promoter_shares,
+            institutional_shares,
+            public_shares,
+            insider_transactions_last_quarter,
+            insider_buy_count,
+            insider_sell_count,
+            major_shareholders_count,
+            top_10_shareholders_percentage,
+            last_updated
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          ON CONFLICT (symbol) DO UPDATE SET
+            promoter_holding_percentage = EXCLUDED.promoter_holding_percentage,
+            institutional_holding_percentage = EXCLUDED.institutional_holding_percentage,
+            public_holding_percentage = EXCLUDED.public_holding_percentage,
+            foreign_institutional_holding = EXCLUDED.foreign_institutional_holding,
+            domestic_institutional_holding = EXCLUDED.domestic_institutional_holding,
+            mutual_fund_holding = EXCLUDED.mutual_fund_holding,
+            retail_holding = EXCLUDED.retail_holding,
+            promoter_pledge_percentage = EXCLUDED.promoter_pledge_percentage,
+            shares_pledged = EXCLUDED.shares_pledged,
+            total_shares = EXCLUDED.total_shares,
+            promoter_shares = EXCLUDED.promoter_shares,
+            institutional_shares = EXCLUDED.institutional_shares,
+            public_shares = EXCLUDED.public_shares,
+            insider_transactions_last_quarter = EXCLUDED.insider_transactions_last_quarter,
+            insider_buy_count = EXCLUDED.insider_buy_count,
+            insider_sell_count = EXCLUDED.insider_sell_count,
+            major_shareholders_count = EXCLUDED.major_shareholders_count,
+            top_10_shareholders_percentage = EXCLUDED.top_10_shareholders_percentage,
+            last_updated = EXCLUDED.last_updated`,
+          [
+            shareholding.symbol,
+            shareholding.promoter_holding_percentage,
+            shareholding.institutional_holding_percentage,
+            shareholding.public_holding_percentage,
+            shareholding.foreign_institutional_holding,
+            shareholding.domestic_institutional_holding,
+            shareholding.mutual_fund_holding,
+            shareholding.retail_holding,
+            shareholding.promoter_pledge_percentage,
+            shareholding.shares_pledged,
+            shareholding.total_shares,
+            shareholding.promoter_shares,
+            shareholding.institutional_shares,
+            shareholding.public_shares,
+            shareholding.insider_transactions_last_quarter,
+            shareholding.insider_buy_count,
+            shareholding.insider_sell_count,
+            shareholding.major_shareholders_count,
+            shareholding.top_10_shareholders_percentage,
+            shareholding.last_updated
+          ]
+        );
+        
+        console.log(`  ✓ Populated ${symbol}`);
+        successCount++;
+        
+        // Small delay to be polite to Yahoo Finance
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error) {
+        console.error(`  ❌ Error processing ${symbol}:`, error.message);
+        errorCount++;
+      }
+    }
+    
+    console.log(`\n✅ Shareholding population complete`);
+    console.log(`   Success: ${successCount}, Errors: ${errorCount}`);
+    
+    return { success: true, successCount, errorCount };
+    
+  } catch (error) {
+    console.error('❌ Error populating shareholding:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update stocks table with missing fields from Yahoo Finance
+ * Populates: market cap, employees, headquarters, website, description,
+ * 52 week high/low, average volume, shares outstanding, float shares,
+ * ownership percentages, country, currency
+ */
+async function updateStocksTable() {
+  try {
+    console.log('\n📊 Updating stocks table with Yahoo Finance data...\n');
+    
+    // Get all stocks from database
+    const stocksResult = await pool.query('SELECT symbol FROM stocks ORDER BY symbol');
+    const symbols = stocksResult.rows.map(row => row.symbol);
+    
+    console.log(`Found ${symbols.length} stocks to update\n`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const symbol of symbols) {
+      try {
+        console.log(`Processing ${symbol}...`);
+        
+        // Get stock info from Yahoo Finance
+        const stockInfo = await yahooFinanceService.getStockInfo(symbol);
+        
+        // Update stocks table
+        await pool.query(
+          `UPDATE stocks 
+           SET company_name = COALESCE($1, company_name),
+               exchange = COALESCE($2, exchange),
+               sector = COALESCE($3, sector),
+               industry = COALESCE($4, industry),
+               market_cap = $5,
+               employees = $6,
+               founded_year = $7,
+               headquarters = $8,
+               website = $9,
+               description = $10,
+               listing_date = $11,
+               week_52_high = $12,
+               week_52_low = $13,
+               average_volume = $14,
+               shares_outstanding = $15,
+               float_shares = $16,
+               insider_ownership_percentage = $17,
+               institutional_ownership_percentage = $18,
+               country = $19
+           WHERE symbol = $20`,
+          [
+            stockInfo.company_name,
+            stockInfo.exchange,
+            stockInfo.sector,
+            stockInfo.industry,
+            stockInfo.market_cap,
+            stockInfo.employees,
+            stockInfo.founded_year,
+            stockInfo.headquarters,
+            stockInfo.website,
+            stockInfo.description,
+            stockInfo.listing_date,
+            stockInfo.week_52_high,
+            stockInfo.week_52_low,
+            stockInfo.average_volume,
+            stockInfo.shares_outstanding,
+            stockInfo.float_shares,
+            stockInfo.insider_ownership_percentage,
+            stockInfo.institutional_ownership_percentage,
+            stockInfo.country,
+            symbol
+          ]
+        );
+        
+        console.log(`  ✓ Updated ${symbol}`);
+        successCount++;
+        
+        // Small delay to be polite to Yahoo Finance
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error) {
+        console.error(`  ❌ Error processing ${symbol}:`, error.message);
+        errorCount++;
+      }
+    }
+    
+    console.log(`\n✅ Stocks table update complete`);
+    console.log(`   Success: ${successCount}, Errors: ${errorCount}`);
+    
+    return { success: true, successCount, errorCount };
+    
+  } catch (error) {
+    console.error('❌ Error updating stocks table:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   IT_SECTOR_STOCKS,
   FINANCIAL_STOCKS,
@@ -765,5 +1131,9 @@ module.exports = {
   updateExistingStocks,
   populateCorporateActions,
   populateEarningsAnalystData,
-  updateFinancialsWithMissingFields
+  updateFinancialsWithMissingFields,
+  updateFinancialsWithSharesOutstanding,
+  updateFundamentalsTable,
+  populateShareholdingTable,
+  updateStocksTable
 };

@@ -348,11 +348,11 @@ class _ScreenerPageState extends State<ScreenerPage> {
               children: [
                 if (stock['pe_ratio'] != null)
                   Expanded(
-                    child: _buildMetric('PE Ratio', stock['pe_ratio'].toString()),
+                    child: _buildMetric('PE Ratio', _formatNumber(stock['pe_ratio'])),
                   ),
                 if (stock['peg_ratio'] != null)
                   Expanded(
-                    child: _buildMetric('PEG Ratio', stock['peg_ratio'].toString()),
+                    child: _buildMetric('PEG Ratio', _formatNumber(stock['peg_ratio'])),
                   ),
               ],
             ),
@@ -364,7 +364,7 @@ class _ScreenerPageState extends State<ScreenerPage> {
               const SizedBox(height: 8),
               _buildMetric(
                 'Promoter Holding',
-                '${stock['promoter_holding_percentage'].toStringAsFixed(1)}%',
+                '${_toDouble(stock['promoter_holding_percentage'])?.toStringAsFixed(1) ?? 'N/A'}%',
               ),
             ],
           ],
@@ -420,9 +420,26 @@ class _ScreenerPageState extends State<ScreenerPage> {
     );
   }
 
+  double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
+  }
+
+  String _formatNumber(dynamic value) {
+    final num = _toDouble(value);
+    if (num == null) return 'N/A';
+    return num.toStringAsFixed(2);
+  }
+
   String _formatMarketCap(dynamic marketCap) {
     if (marketCap == null) return 'N/A';
-    double value = marketCap is int ? marketCap.toDouble() : marketCap;
+    final value = _toDouble(marketCap);
+    if (value == null) return 'N/A';
     
     if (value >= 1e12) {
       return '\$${(value / 1e12).toStringAsFixed(2)}T';

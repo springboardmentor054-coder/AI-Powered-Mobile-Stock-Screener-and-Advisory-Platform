@@ -226,6 +226,271 @@ async function getCurrentPrice(symbol) {
 }
 
 /**
+ * Get key statistics including shares outstanding
+ * Returns: shares outstanding, float shares, etc.
+ */
+async function getKeyStatistics(symbol) {
+  try {
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: ['defaultKeyStatistics']
+    });
+
+    const stats = result.defaultKeyStatistics || {};
+
+    return {
+      symbol,
+      sharesOutstanding: stats.sharesOutstanding || null,
+      floatShares: stats.floatShares || null,
+      sharesShort: stats.sharesShort || null,
+      shortRatio: stats.shortRatio || null,
+      heldPercentInsiders: stats.heldPercentInsiders || null,
+      heldPercentInstitutions: stats.heldPercentInstitutions || null
+    };
+
+  } catch (error) {
+    console.error(`Error fetching key statistics for ${symbol}:`, error.message);
+    return {
+      symbol,
+      sharesOutstanding: null,
+      floatShares: null,
+      sharesShort: null,
+      shortRatio: null,
+      heldPercentInsiders: null,
+      heldPercentInstitutions: null
+    };
+  }
+}
+
+/**
+ * Get comprehensive fundamental metrics for a stock
+ * Returns: beta, ratios (PB, PS, PE), dividend yield, EPS, margins, liquidity ratios, etc.
+ */
+async function getFundamentals(symbol) {
+  try {
+    // Get quote for EPS
+    const quote = await yahooFinance.quote(symbol);
+    
+    // Get comprehensive data from multiple modules
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: [
+        'defaultKeyStatistics',
+        'summaryDetail',
+        'financialData'
+      ]
+    });
+
+    const keyStats = result.defaultKeyStatistics || {};
+    const summary = result.summaryDetail || {};
+    const financial = result.financialData || {};
+
+    return {
+      symbol,
+      // Valuation Ratios
+      pb_ratio: keyStats.priceToBook || null,
+      ps_ratio: summary.priceToSalesTrailing12Months || null,
+      pe_ratio: summary.trailingPE || null,
+      
+      // Dividend & Risk
+      dividend_yield: summary.dividendYield || null,
+      beta: keyStats.beta || summary.beta || null,
+      
+      // Earnings
+      eps: quote.epsTrailingTwelveMonths || null,
+      book_value_per_share: keyStats.bookValue || null,
+      
+      // Profitability Margins
+      profit_margin: financial.profitMargins || keyStats.profitMargins || null,
+      operating_margin: financial.operatingMargins || null,
+      return_on_equity: financial.returnOnEquity || null,
+      return_on_assets: financial.returnOnAssets || null,
+      
+      // Liquidity Ratios
+      current_ratio: financial.currentRatio || null,
+      quick_ratio: financial.quickRatio || null,
+      
+      // Leverage
+      debt_to_equity_ratio: financial.debtToEquity || null,
+      interest_coverage: keyStats.interestCoverage || null,
+    };
+  } catch (error) {
+    console.error(`Error fetching fundamentals for ${symbol}:`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get comprehensive shareholding/ownership data for a stock
+ * Returns: insider holdings, institutional holdings, mutual fund holdings, insider transactions
+ */
+async function getShareholdingData(symbol) {
+  try {
+    // Get comprehensive ownership data from multiple modules
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: [
+        'majorHoldersBreakdown',
+        'institutionOwnership',
+        'fundOwnership',
+        'insiderTransactions',
+        'defaultKeyStatistics'
+      ]
+    });
+
+    const majorHolders = result.majorHoldersBreakdown || {};
+    const institutional = result.institutionOwnership?.ownershipList || [];
+    const funds = result.fundOwnership?.ownershipList || [];
+    const transactions = result.insiderTransactions?.transactions || [];
+    const keyStats = result.defaultKeyStatistics || {};
+
+    // Calculate shareholding percentages
+    const insiderPercent = majorHolders.insidersPercentHeld 
+      ? majorHolders.insidersPercentHeld * 100 
+      : null;
+    const institutionalPercent = majorHolders.institutionsPercentHeld 
+      ? majorHolders.institutionsPercentHeld * 100 
+      : null;
+    const publicPercent = (insiderPercent !== null && institutionalPercent !== null)
+      ? Math.max(0, 100 - insiderPercent - institutionalPercent)
+      : null;
+
+    // Calculate mutual fund holdings from fund ownership list
+    const mutualFundPercent = funds.length > 0
+      ? funds.reduce((sum, fund) => sum + (fund.pctHeld || 0), 0) * 100
+      : null;
+
+    // Count insider transactions in last quarter (approx 90 days)
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    const recentTransactions = transactions.filter(tx => {
+      if (!tx.startDate) return false;
+      const txDate = new Date(tx.startDate);
+      return txDate >= threeMonthsAgo;
+    });
+
+    const insiderBuyCount = recentTransactions.filter(tx => 
+      tx.transactionText && tx.transactionText.toLowerCase().includes('purchase')
+    ).length;
+
+    const insiderSellCount = recentTransactions.filter(tx => 
+      tx.transactionText && (
+        tx.transactionText.toLowerCase().includes('sale') ||
+        tx.transactionText.toLowerCase().includes('sell')
+      )
+    ).length;
+
+    // Count major shareholders and calculate top 10 percentage
+    const top10Percent = institutional.length > 0
+      ? institutional.slice(0, 10).reduce((sum, holder) => sum + (holder.pctHeld || 0), 0) * 100
+      : null;
+
+    // Get shares outstanding for calculations
+    const sharesOutstanding = keyStats.sharesOutstanding || null;
+    const floatShares = keyStats.floatShares || null;
+
+    return {
+      symbol,
+      // Ownership percentages
+      promoter_holding_percentage: insiderPercent, // In US context, promoter = insider
+      institutional_holding_percentage: institutionalPercent,
+      public_holding_percentage: publicPercent,
+      mutual_fund_holding: mutualFundPercent,
+      
+      // Share counts
+      total_shares: sharesOutstanding,
+      promoter_shares: (sharesOutstanding && insiderPercent) 
+        ? Math.round(sharesOutstanding * insiderPercent / 100)
+        : null,
+      institutional_shares: (sharesOutstanding && institutionalPercent)
+        ? Math.round(sharesOutstanding * institutionalPercent / 100)
+        : null,
+      public_shares: (sharesOutstanding && publicPercent)
+        ? Math.round(sharesOutstanding * publicPercent / 100)
+        : null,
+      
+      // Insider transactions
+      insider_transactions_last_quarter: recentTransactions.length,
+      insider_buy_count: insiderBuyCount,
+      insider_sell_count: insiderSellCount,
+      
+      // Major shareholders
+      major_shareholders_count: institutional.length,
+      top_10_shareholders_percentage: top10Percent,
+      
+      // Additional fields (not available in Yahoo Finance for US stocks)
+      foreign_institutional_holding: null, // US-specific data not split this way
+      domestic_institutional_holding: null, // US-specific data not split this way
+      retail_holding: null, // Not separately reported
+      promoter_pledge_percentage: null, // US concept different from India
+      shares_pledged: null, // US concept different from India
+      
+      last_updated: new Date()
+    };
+  } catch (error) {
+    console.error(`Error fetching shareholding data for ${symbol}:`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get comprehensive stock information
+ * Returns: company details, market data, profile, description, etc.
+ */
+async function getStockInfo(symbol) {
+  try {
+    // Get comprehensive data from multiple modules
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: [
+        'assetProfile',
+        'price',
+        'summaryDetail',
+        'defaultKeyStatistics'
+      ]
+    });
+
+    const profile = result.assetProfile || {};
+    const price = result.price || {};
+    const summary = result.summaryDetail || {};
+    const stats = result.defaultKeyStatistics || {};
+
+    // Build headquarters string
+    const headquarters = [profile.city, profile.state, profile.country]
+      .filter(Boolean)
+      .join(', ') || null;
+
+    return {
+      symbol,
+      company_name: price.longName || price.shortName || null,
+      exchange: price.exchange || null,
+      sector: profile.sector || null,
+      industry: profile.industry || null,
+      market_cap: price.marketCap || null,
+      employees: profile.fullTimeEmployees || null,
+      founded_year: null, // Not available in Yahoo Finance
+      headquarters: headquarters,
+      website: profile.website || null,
+      description: profile.longBusinessSummary || null,
+      listing_date: null, // Not available in Yahoo Finance
+      week_52_high: summary.fiftyTwoWeekHigh || null,
+      week_52_low: summary.fiftyTwoWeekLow || null,
+      average_volume: summary.averageVolume || null,
+      shares_outstanding: stats.sharesOutstanding || null,
+      float_shares: stats.floatShares || null,
+      insider_ownership_percentage: stats.heldPercentInsiders 
+        ? stats.heldPercentInsiders * 100 
+        : null,
+      institutional_ownership_percentage: stats.heldPercentInstitutions
+        ? stats.heldPercentInstitutions * 100
+        : null,
+      country: profile.country || null,
+      currency: price.currency || null
+    };
+  } catch (error) {
+    console.error(`Error fetching stock info for ${symbol}:`, error.message);
+    throw error;
+  }
+}
+
+/**
  * Helper function to add delay between requests (optional, for being polite)
  */
 function delay(ms) {
@@ -237,5 +502,9 @@ module.exports = {
   getAnalystData,
   getComprehensiveEarningsAnalystData,
   getCurrentPrice,
+  getKeyStatistics,
+  getFundamentals,
+  getShareholdingData,
+  getStockInfo,
   delay
 };
