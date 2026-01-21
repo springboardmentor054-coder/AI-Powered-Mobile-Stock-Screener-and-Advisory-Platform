@@ -1,15 +1,18 @@
-import { Text, View } from "react-native";
+import { useState } from "react";
+import { View } from "react-native";
+import Header from "./components/header";
+import Hero from "./components/hero";
 
 export default function Index() {
+  const [showInputOnly, setShowInputOnly] = useState(false);
+
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+    <View style={{ backgroundColor: "#f8f2e8", flex: 1 }}>
+      <Header onNewChat={() => setShowInputOnly(true)} />
+      <Hero
+        inputOnly={showInputOnly}
+        onExitInputOnly={() => setShowInputOnly(false)}
+      />
     </View>
   );
 }
