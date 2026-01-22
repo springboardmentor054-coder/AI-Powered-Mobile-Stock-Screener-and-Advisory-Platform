@@ -1,186 +1,110 @@
--- AI STOCK SCREENER DATABASE SCHEMA
--- PostgreSQL Schema Definition
--- 
--- HOW TO USE THIS FILE:
--- 1. Connect to PostgreSQL: psql -U postgres
--- 2. Create database: CREATE DATABASE stock_screener;
--- 3. Connect to it: \c stock_screener
--- 4. Run this file: \i schema.sql
-
--- ============================================
--- TABLE: symbols
--- Stores stock ticker symbols and company info
--- ============================================
-
+-- Drop existing tables
+DROP TABLE IF EXISTS quarterly_financials CASCADE;
 DROP TABLE IF EXISTS fundamentals CASCADE;
-DROP TABLE IF EXISTS symbols CASCADE;
+DROP TABLE IF EXISTS companies CASCADE;
 
-CREATE TABLE symbols (
+-- Create companies table (what the code expects)
+CREATE TABLE companies (
   id SERIAL PRIMARY KEY,
-  ticker VARCHAR(20) UNIQUE NOT NULL,
-  exchange VARCHAR(50),
-  company_name VARCHAR(255),
+  symbol VARCHAR(20) UNIQUE NOT NULL,
+  name VARCHAR(255),
   sector VARCHAR(100),
-  industry VARCHAR(100),
+  exchange VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index for faster ticker lookups
-CREATE INDEX idx_symbols_ticker ON symbols(ticker);
+CREATE INDEX idx_companies_symbol ON companies(symbol);
+CREATE INDEX idx_companies_sector ON companies(sector);
 
--- Index for sector filtering
-CREATE INDEX idx_symbols_sector ON symbols(sector);
-
--- ============================================
--- TABLE: fundamentals
--- Stores financial metrics for each stock
--- ============================================
-
+-- Create fundamentals table
 CREATE TABLE fundamentals (
   id SERIAL PRIMARY KEY,
-  symbol_id INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
-  
-  -- Valuation metrics
-  pe_ratio DECIMAL(10, 2),           -- Price-to-Earnings ratio
-  market_cap BIGINT,                 -- Market capitalization in smallest currency unit
-  eps DECIMAL(10, 2),                -- Earnings Per Share
-  
-  -- Financial health metrics
-  debt_to_equity DECIMAL(10, 2),     -- Debt-to-Equity ratio
-  
-  -- Ownership metrics (India-specific)
-  promoter_holding DECIMAL(5, 2),    -- Promoter holding percentage
-  
-  -- Metadata
+  symbol VARCHAR(20) NOT NULL REFERENCES companies(symbol) ON DELETE CASCADE,
+  pe_ratio DECIMAL(10, 2),
+  peg_ratio DECIMAL(10, 2),
+  debt_to_fcf DECIMAL(10, 2),
+  revenue_growth DECIMAL(10, 2),
+  market_cap BIGINT,
+  eps DECIMAL(10, 2),
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  -- Ensure one fundamental record per symbol
-  UNIQUE(symbol_id)
+  UNIQUE(symbol)
 );
 
--- Index for faster joins
-CREATE INDEX idx_fundamentals_symbol_id ON fundamentals(symbol_id);
-
--- Indexes for common filter operations
+CREATE INDEX idx_fundamentals_symbol ON fundamentals(symbol);
 CREATE INDEX idx_fundamentals_pe_ratio ON fundamentals(pe_ratio);
 CREATE INDEX idx_fundamentals_market_cap ON fundamentals(market_cap);
 
--- ============================================
--- SAMPLE DATA
--- Insert some example stocks for testing
--- ============================================
-
--- Insert TCS (Tata Consultancy Services)
-INSERT INTO symbols (ticker, exchange, company_name, sector, industry)
-VALUES ('TCS', 'NSE', 'Tata Consultancy Services', 'Technology', 'IT Services & Consulting');
-
-INSERT INTO fundamentals (symbol_id, pe_ratio, market_cap, eps, debt_to_equity, promoter_holding)
-VALUES (
-  (SELECT id FROM symbols WHERE ticker = 'TCS'),
-  28.5,
-  1200000000000,  -- 12 lakh crores
-  120.5,
-  0.15,
-  72.3
+-- Create quarterly_financials table
+CREATE TABLE quarterly_financials (
+  id SERIAL PRIMARY KEY,
+  company_id VARCHAR(20) NOT NULL REFERENCES companies(symbol) ON DELETE CASCADE,
+  quarter DATE NOT NULL,
+  revenue BIGINT,
+  profit BIGINT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(company_id, quarter)
 );
 
--- Insert Reliance
-INSERT INTO symbols (ticker, exchange, company_name, sector, industry)
-VALUES ('RELIANCE', 'NSE', 'Reliance Industries Limited', 'Energy', 'Oil & Gas');
+CREATE INDEX idx_quarterly_company ON quarterly_financials(company_id);
+CREATE INDEX idx_quarterly_quarter ON quarterly_financials(quarter);
 
-INSERT INTO fundamentals (symbol_id, pe_ratio, market_cap, eps, debt_to_equity, promoter_holding)
-VALUES (
-  (SELECT id FROM symbols WHERE ticker = 'RELIANCE'),
-  25.3,
-  1800000000000,  -- 18 lakh crores
-  95.7,
-  0.45,
-  50.4
-);
+-- Insert sample IT companies
+INSERT INTO companies (symbol, name, sector, exchange) VALUES
+('TCS', 'Tata Consultancy Services', 'IT', 'NSE'),
+('INFY', 'Infosys Limited', 'IT', 'NSE'),
+('WIPRO', 'Wipro Limited', 'IT', 'NSE'),
+('HCLTECH', 'HCL Technologies', 'IT', 'NSE'),
+('TECHM', 'Tech Mahindra', 'IT', 'NSE');
 
--- Insert Infosys
-INSERT INTO symbols (ticker, exchange, company_name, sector, industry)
-VALUES ('INFY', 'NSE', 'Infosys Limited', 'Technology', 'IT Services & Consulting');
+-- Insert sample Finance companies
+INSERT INTO companies (symbol, name, sector, exchange) VALUES
+('HDFCBANK', 'HDFC Bank', 'Finance', 'NSE'),
+('ICICIBANK', 'ICICI Bank', 'Finance', 'NSE'),
+('SBIN', 'State Bank of India', 'Finance', 'NSE');
 
-INSERT INTO fundamentals (symbol_id, pe_ratio, market_cap, eps, debt_to_equity, promoter_holding)
-VALUES (
-  (SELECT id FROM symbols WHERE ticker = 'INFY'),
-  26.8,
-  650000000000,  -- 6.5 lakh crores
-  65.2,
-  0.08,
-  15.2
-);
+-- Insert fundamentals for IT stocks
+INSERT INTO fundamentals (symbol, pe_ratio, peg_ratio, debt_to_fcf, revenue_growth, market_cap, eps) VALUES
+('TCS', 28.5, 2.1, 0.05, 12.5, 1200000000000, 120.5),
+('INFY', 26.8, 1.9, 0.08, 15.2, 650000000000, 65.2),
+('WIPRO', 22.4, 1.8, 0.12, 8.5, 320000000000, 28.5),
+('HCLTECH', 24.3, 2.0, 0.10, 11.8, 450000000000, 45.8),
+('TECHM', 21.5, 1.7, 0.15, 9.2, 280000000000, 32.1);
 
--- Insert HDFC Bank
-INSERT INTO symbols (ticker, exchange, company_name, sector, industry)
-VALUES ('HDFCBANK', 'NSE', 'HDFC Bank Limited', 'Finance', 'Banking');
+-- Insert fundamentals for Finance stocks
+INSERT INTO fundamentals (symbol, pe_ratio, peg_ratio, debt_to_fcf, revenue_growth, market_cap, eps) VALUES
+('HDFCBANK', 18.5, 1.5, 0.25, 18.5, 850000000000, 82.3),
+('ICICIBANK', 16.8, 1.4, 0.30, 16.2, 620000000000, 45.7),
+('SBIN', 12.3, 1.2, 0.45, 10.5, 480000000000, 38.5);
 
-INSERT INTO fundamentals (symbol_id, pe_ratio, market_cap, eps, debt_to_equity, promoter_holding)
-VALUES (
-  (SELECT id FROM symbols WHERE ticker = 'HDFCBANK'),
-  18.5,
-  850000000000,  -- 8.5 lakh crores
-  82.3,
-  8.5,  -- Banks have high debt-to-equity
-  26.1
-);
+-- Insert quarterly financials (last 4 quarters for each company)
+INSERT INTO quarterly_financials (company_id, quarter, revenue, profit) VALUES
+-- TCS
+('TCS', '2025-12-31', 62000000000, 12000000000),
+('TCS', '2025-09-30', 60000000000, 11500000000),
+('TCS', '2025-06-30', 59000000000, 11200000000),
+('TCS', '2025-03-31', 58000000000, 11000000000),
+-- INFY
+('INFY', '2025-12-31', 40000000000, 8000000000),
+('INFY', '2025-09-30', 39000000000, 7800000000),
+('INFY', '2025-06-30', 38000000000, 7500000000),
+('INFY', '2025-03-31', 37000000000, 7200000000);
 
--- Insert Wipro
-INSERT INTO symbols (ticker, exchange, company_name, sector, industry)
-VALUES ('WIPRO', 'NSE', 'Wipro Limited', 'Technology', 'IT Services & Consulting');
+-- Verification queries
+SELECT 'Companies:' as table_name, COUNT(*) as count FROM companies
+UNION ALL
+SELECT 'Fundamentals:', COUNT(*) FROM fundamentals
+UNION ALL
+SELECT 'Quarterly Data:', COUNT(*) FROM quarterly_financials;
 
-INSERT INTO fundamentals (symbol_id, pe_ratio, market_cap, eps, debt_to_equity, promoter_holding)
-VALUES (
-  (SELECT id FROM symbols WHERE ticker = 'WIPRO'),
-  22.4,
-  320000000000,  -- 3.2 lakh crores
-  28.5,
-  0.12,
-  73.5
-);
-
--- ============================================
--- VERIFICATION QUERIES
--- Run these to verify the setup
--- ============================================
-
--- Count symbols
-SELECT COUNT(*) as total_symbols FROM symbols;
-
--- Count fundamentals
-SELECT COUNT(*) as total_fundamentals FROM fundamentals;
-
--- View all stocks with fundamentals
+-- Show sample data
 SELECT 
-  s.ticker,
-  s.company_name,
-  s.sector,
+  c.symbol,
+  c.name,
+  c.sector,
   f.pe_ratio,
-  f.market_cap,
-  f.eps
-FROM symbols s
-LEFT JOIN fundamentals f ON s.id = f.symbol_id
-ORDER BY s.ticker;
-
--- Test query: Stocks with PE < 25
-SELECT 
-  s.ticker,
-  s.company_name,
-  f.pe_ratio,
+  f.peg_ratio,
   f.market_cap
-FROM symbols s
-INNER JOIN fundamentals f ON s.id = f.symbol_id
-WHERE f.pe_ratio < 25
-ORDER BY f.pe_ratio;
-
--- Test query: Technology sector stocks
-SELECT 
-  s.ticker,
-  s.company_name,
-  s.sector,
-  f.pe_ratio
-FROM symbols s
-INNER JOIN fundamentals f ON s.id = f.symbol_id
-WHERE s.sector LIKE '%Technology%'
-ORDER BY f.pe_ratio;
+FROM companies c
+INNER JOIN fundamentals f ON c.symbol = f.symbol
+ORDER BY f.market_cap DESC
+LIMIT 5;

@@ -60,16 +60,17 @@ async function getStocks(req, res) {
     const result = await pool.query(`
       SELECT
         s.ticker,
-        cp.company_name,
-        cp.sector,
+        s.company_name,
+        s.sector,
+        s.industry,
+        f.pe_ratio,
         f.market_cap,
-        r.pe_ratio,
-        r.roe
+        f.eps,
+        f.debt_to_equity,
+        f.promoter_holding
       FROM symbols s
-      JOIN company_profile cp ON cp.symbol_id = s.id
       JOIN fundamentals f ON f.symbol_id = s.id
-      JOIN ratios r ON r.symbol_id = s.id
-      WHERE s.is_active = true;
+      ORDER BY s.ticker;
     `);
 
     res.json(result.rows);

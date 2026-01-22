@@ -1,121 +1,165 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'screens/home_screen.dart';
+import 'screens/profile_dashboard_screen.dart';
+import 'utils/colors.dart';
 
 void main() {
-  runApp(const StockApp());
+  runApp(const StockScreenerApp());
 }
 
-class StockApp extends StatelessWidget {
-  const StockApp({super.key});
+class StockScreenerApp extends StatelessWidget {
+  const StockScreenerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Stock Screener',
-      home: const StockScreen(),
+      title: 'Stock Screener Pro',
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+          primary: AppColors.primary,
+          secondary: AppColors.secondary,
+          error: AppColors.error,
+          surface: AppColors.surface,
+          background: AppColors.background,
+        ),
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        appBarTheme: AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            elevation: 2,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: AppColors.surface,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppColors.primary, width: 2),
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.dark,
+          primary: AppColors.primary,
+          secondary: AppColors.secondary,
+          error: AppColors.error,
+          surface: AppColors.darkSurface,
+          background: AppColors.darkBackground,
+        ),
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        appBarTheme: AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: AppColors.darkSurface,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            elevation: 2,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+      themeMode: ThemeMode.system,
+      home: const MainNavigation(),
     );
   }
 }
 
-class StockScreen extends StatefulWidget {
-  const StockScreen({super.key});
+class MainNavigation extends StatefulWidget {
+  const MainNavigation({super.key});
 
   @override
-  State<StockScreen> createState() => _StockScreenState();
+  State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _StockScreenState extends State<StockScreen> {
-  final TextEditingController _queryController = TextEditingController();
-  List stocks = [];
-  bool loading = false;
+class _MainNavigationState extends State<MainNavigation> {
+  int _selectedIndex = 0;
 
-  // 🔴 CHANGE IP IF NEEDED
-  final String apiUrl = "http://192.168.1.5:3000/stocks";
-
-  Future<void> screenStocks() async {
-    setState(() {
-      loading = true;
-      stocks = [];
-    });
-
-    try {
-      final response = await http.get(Uri.parse(apiUrl));
-      if (response.statusCode == 200) {
-        setState(() {
-          stocks = jsonDecode(response.body);
-          loading = false;
-        });
-      }
-    } catch (e) {
-      setState(() => loading = false);
-    }
-  }
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const ProfileDashboardScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("📈 Stock Screener")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // 🔹 English query input
-            TextField(
-              controller: _queryController,
-              decoration: const InputDecoration(
-                labelText: "Enter screener query",
-                hintText: "e.g. stocks with pe less than 30",
-                border: OutlineInputBorder(),
-              ),
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
             ),
-            const SizedBox(height: 12),
-
-            // 🔹 Screen button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: screenStocks,
-                child: const Text("Screen"),
-              ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) => setState(() => _selectedIndex = index),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: AppColors.surface,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textSecondary,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              activeIcon: Icon(Icons.search, size: 28),
+              label: 'Search',
             ),
-
-            const SizedBox(height: 16),
-
-            // 🔹 Result section
-            Expanded(
-              child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : stocks.isEmpty
-                      ? const Center(child: Text("No results"))
-                      : ListView.builder(
-                          itemCount: stocks.length,
-                          itemBuilder: (context, index) {
-                            final stock = stocks[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: ListTile(
-                                title: Text(
-                                  stock["ticker"],
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Text(
-                                  "Company: ${stock["company_name"]}\n"
-                                  "Sector: ${stock["sector"]}\n"
-                                  "PE: ${stock["pe_ratio"]}\n"
-                                  "ROE: ${stock["roe"]}\n"
-                                  "Market Cap: ${stock["market_cap"]}",
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-            )
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              activeIcon: Icon(Icons.dashboard, size: 28),
+              label: 'Dashboard',
+            ),
           ],
         ),
       ),
     );
   }
 }
+
