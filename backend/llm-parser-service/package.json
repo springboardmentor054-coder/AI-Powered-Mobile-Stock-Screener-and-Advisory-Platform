@@ -1,0 +1,9 @@
+{
+  "name": "llm-parser-service",
+  "main": "index.js",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "openai": "^4.0.0"
+  }
+}
