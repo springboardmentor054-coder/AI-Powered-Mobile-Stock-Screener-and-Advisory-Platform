@@ -1,4 +1,20 @@
 /* Schema for Stock Market Database */
+
+/* User Authentication Table */
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP
+);
+
+/* Create index on email for faster lookups */
+CREATE INDEX idx_users_email ON users(email);
+
 /* This table stores basic identity information of listed stocks.
 Why needed
 To filter by IT sector

@@ -80,11 +80,17 @@ Output: {"sector": "Financials", "conditions": [{"field": "pe_ratio", "operator"
 Query: "Companies that announced stock buybacks"
 Output: {"sector": null, "conditions": [], "specialFilters": {"hasStockBuyback": true}}
 
+Query: "Healthcare stocks with promoter holding equal to 20%"
+Output: {"sector": "Healthcare", "conditions": [{"field": "promoter_holding_percentage", "operator": "=", "value": 20}], "specialFilters": {}}
+
+Query: "Stocks with dividend yield above 3.5%"
+Output: {"sector": null, "conditions": [{"field": "dividend_yield", "operator": ">", "value": 3.5}], "specialFilters": {}}
+
 IMPORTANT: 
 - Only use fields from the schema above
 - Always return valid JSON
 - Use "Technology" or "IT" for tech sector
-- Percentages are stored as numbers (50 not 0.5)
+- **CRITICAL: For percentage fields (promoter_holding_percentage, institutional_holding_percentage, dividend_yield, profit_margin, etc.), use WHOLE NUMBERS: 50 means 50%, 20 means 20%, 100 means 100%. DO NOT convert to decimals.**
 - Return empty specialFilters object if no special filters needed`;
 
 /**

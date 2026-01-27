@@ -46,7 +46,8 @@ async function loadAllRemainingStocks() {
     });
     
     console.log(`\n🚀 Starting to load ${stocksToLoad.length} stocks...`);
-    console.log(`⏱️  Estimated time: ~${Math.ceil(stocksToLoad.length * 13 / 60)} minutes\n`);
+    console.log(`⚡ Using Yahoo Finance - Fast & Unlimited!`);
+    console.log(`⏱️  Estimated time: ~${Math.ceil(stocksToLoad.length * 3 / 60)} minutes (with 3s delays)\n`);
     
     let successCount = 0;
     let errorCount = 0;
@@ -69,12 +70,12 @@ async function loadAllRemainingStocks() {
         console.error(`❌ Error loading ${stock.symbol}:`, error.message);
       }
       
-      // Wait 13 seconds between stocks to respect Alpha Vantage rate limit
+      // Wait just 3 seconds between stocks (Yahoo Finance is free with no hard limits!)
       if (i < stocksToLoad.length - 1) {
         const remaining = stocksToLoad.length - i - 1;
-        const eta = Math.ceil(remaining * 13 / 60);
-        console.log(`⏳ Waiting 13s... (${remaining} stocks remaining, ETA: ~${eta} min)`);
-        await new Promise(resolve => setTimeout(resolve, 13000));
+        const eta = Math.ceil(remaining * 3 / 60);
+        console.log(`⏳ Waiting 3s... (${remaining} stocks remaining, ETA: ~${eta} min)`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
     

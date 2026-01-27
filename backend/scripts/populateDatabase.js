@@ -18,6 +18,17 @@ const IT_SECTOR_STOCKS = [
   { symbol: "INTU", sector: "Technology", category: "Software" },
   { symbol: "WDAY", sector: "Technology", category: "Software" },
   { symbol: "PANW", sector: "Technology", category: "Software" },
+  { symbol: "SNOW", sector: "Technology", category: "Software" },
+  { symbol: "CRWD", sector: "Technology", category: "Software" },
+  { symbol: "ZS", sector: "Technology", category: "Software" },
+  { symbol: "DDOG", sector: "Technology", category: "Software" },
+  { symbol: "NET", sector: "Technology", category: "Software" },
+  { symbol: "TEAM", sector: "Technology", category: "Software" },
+  { symbol: "PLTR", sector: "Technology", category: "Software" },
+  { symbol: "FTNT", sector: "Technology", category: "Software" },
+  { symbol: "ADSK", sector: "Technology", category: "Software" },
+  { symbol: "SNPS", sector: "Technology", category: "Software" },
+  { symbol: "CDNS", sector: "Technology", category: "Software" },
   
   // Semiconductor Companies
   { symbol: "NVDA", sector: "Technology", category: "Semiconductors" },
@@ -28,91 +39,236 @@ const IT_SECTOR_STOCKS = [
   { symbol: "TXN", sector: "Technology", category: "Semiconductors" },
   { symbol: "MU", sector: "Technology", category: "Semiconductors" },
   { symbol: "AMAT", sector: "Technology", category: "Semiconductors" },
+  { symbol: "ADI", sector: "Technology", category: "Semiconductors" },
+  { symbol: "LRCX", sector: "Technology", category: "Semiconductors" },
+  { symbol: "KLAC", sector: "Technology", category: "Semiconductors" },
+  { symbol: "MCHP", sector: "Technology", category: "Semiconductors" },
+  { symbol: "NXPI", sector: "Technology", category: "Semiconductors" },
+  { symbol: "MRVL", sector: "Technology", category: "Semiconductors" },
+  { symbol: "ON", sector: "Technology", category: "Semiconductors" },
+  { symbol: "MPWR", sector: "Technology", category: "Semiconductors" },
   
   // Hardware Companies
   { symbol: "AAPL", sector: "Technology", category: "Hardware" },
   { symbol: "HPQ", sector: "Technology", category: "Hardware" },
   { symbol: "DELL", sector: "Technology", category: "Hardware" },
+  { symbol: "HPE", sector: "Technology", category: "Hardware" },
+  { symbol: "NTAP", sector: "Technology", category: "Hardware" },
+  { symbol: "STX", sector: "Technology", category: "Hardware" },
+  { symbol: "WDC", sector: "Technology", category: "Hardware" },
   
-  // Networking & Telecom
+  // Networking & Cloud
   { symbol: "CSCO", sector: "Technology", category: "Networking" },
-  { symbol: "ANET", sector: "Technology", category: "Networking" }
+  { symbol: "ANET", sector: "Technology", category: "Networking" },
+  { symbol: "CFLT", sector: "Technology", category: "Cloud" },
+  { symbol: "AKAM", sector: "Technology", category: "Cloud" }
 ];
 
 // Financial Sector
 const FINANCIAL_STOCKS = [
+  // Banks
   { symbol: "JPM", sector: "Financials", category: "Banking" },
   { symbol: "BAC", sector: "Financials", category: "Banking" },
   { symbol: "WFC", sector: "Financials", category: "Banking" },
   { symbol: "C", sector: "Financials", category: "Banking" },
+  { symbol: "USB", sector: "Financials", category: "Banking" },
+  { symbol: "PNC", sector: "Financials", category: "Banking" },
+  { symbol: "TFC", sector: "Financials", category: "Banking" },
+  { symbol: "COF", sector: "Financials", category: "Banking" },
+  { symbol: "BK", sector: "Financials", category: "Banking" },
+  { symbol: "STT", sector: "Financials", category: "Banking" },
+  
+  // Investment Banking & Asset Management
   { symbol: "GS", sector: "Financials", category: "Investment Banking" },
   { symbol: "MS", sector: "Financials", category: "Investment Banking" },
   { symbol: "BLK", sector: "Financials", category: "Asset Management" },
   { symbol: "SCHW", sector: "Financials", category: "Brokerage" },
-  { symbol: "AXP", sector: "Financials", category: "Credit Services" },
+  { symbol: "SPGI", sector: "Financials", category: "Financial Services" },
+  { symbol: "CME", sector: "Financials", category: "Exchanges" },
+  { symbol: "ICE", sector: "Financials", category: "Exchanges" },
+  { symbol: "MCO", sector: "Financials", category: "Financial Services" },
+  { symbol: "MSCI", sector: "Financials", category: "Financial Services" },
+  
+  // Payment Processing & Fintech
   { symbol: "V", sector: "Financials", category: "Payment Processing" },
   { symbol: "MA", sector: "Financials", category: "Payment Processing" },
-  { symbol: "PYPL", sector: "Financials", category: "Payment Processing" }
+  { symbol: "PYPL", sector: "Financials", category: "Payment Processing" },
+  { symbol: "AXP", sector: "Financials", category: "Credit Services" },
+  { symbol: "FIS", sector: "Financials", category: "Financial Services" },
+  { symbol: "FISV", sector: "Financials", category: "Financial Services" },
+  
+  // Insurance
+  { symbol: "PGR", sector: "Financials", category: "Insurance" },
+  { symbol: "CB", sector: "Financials", category: "Insurance" },
+  { symbol: "TRV", sector: "Financials", category: "Insurance" },
+  { symbol: "ALL", sector: "Financials", category: "Insurance" },
+  { symbol: "AIG", sector: "Financials", category: "Insurance" },
+  { symbol: "MET", sector: "Financials", category: "Insurance" },
+  { symbol: "PRU", sector: "Financials", category: "Insurance" },
+  { symbol: "AFL", sector: "Financials", category: "Insurance" }
 ];
 
 // Healthcare Sector
 const HEALTHCARE_STOCKS = [
+  // Pharmaceuticals
   { symbol: "JNJ", sector: "Healthcare", category: "Pharmaceuticals" },
-  { symbol: "UNH", sector: "Healthcare", category: "Health Insurance" },
   { symbol: "PFE", sector: "Healthcare", category: "Pharmaceuticals" },
   { symbol: "ABBV", sector: "Healthcare", category: "Pharmaceuticals" },
-  { symbol: "TMO", sector: "Healthcare", category: "Medical Devices" },
-  { symbol: "ABT", sector: "Healthcare", category: "Medical Devices" },
-  { symbol: "DHR", sector: "Healthcare", category: "Medical Devices" },
   { symbol: "MRK", sector: "Healthcare", category: "Pharmaceuticals" },
   { symbol: "LLY", sector: "Healthcare", category: "Pharmaceuticals" },
-  { symbol: "CVS", sector: "Healthcare", category: "Pharmacy" }
+  { symbol: "BMY", sector: "Healthcare", category: "Pharmaceuticals" },
+  { symbol: "AMGN", sector: "Healthcare", category: "Pharmaceuticals" },
+  { symbol: "GILD", sector: "Healthcare", category: "Pharmaceuticals" },
+  { symbol: "REGN", sector: "Healthcare", category: "Pharmaceuticals" },
+  { symbol: "VRTX", sector: "Healthcare", category: "Pharmaceuticals" },
+  { symbol: "BIIB", sector: "Healthcare", category: "Pharmaceuticals" },
+  { symbol: "MRNA", sector: "Healthcare", category: "Pharmaceuticals" }
 ];
 
 // Consumer Goods Sector
 const CONSUMER_STOCKS = [
+  // E-commerce & Retail
   { symbol: "AMZN", sector: "Consumer Cyclical", category: "E-commerce" },
-  { symbol: "TSLA", sector: "Consumer Cyclical", category: "Automotive" },
+  { symbol: "WMT", sector: "Consumer Defensive", category: "Retail" },
+  { symbol: "COST", sector: "Consumer Defensive", category: "Retail" },
   { symbol: "HD", sector: "Consumer Cyclical", category: "Retail" },
+  { symbol: "LOW", sector: "Consumer Cyclical", category: "Retail" },
+  { symbol: "TGT", sector: "Consumer Cyclical", category: "Retail" },
+  { symbol: "TJX", sector: "Consumer Cyclical", category: "Retail" },
+  { symbol: "ROST", sector: "Consumer Cyclical", category: "Retail" },
+  { symbol: "DG", sector: "Consumer Cyclical", category: "Retail" },
+  { symbol: "DLTR", sector: "Consumer Cyclical", category: "Retail" },
+  
+  // Automotive
+  { symbol: "TSLA", sector: "Consumer Cyclical", category: "Automotive" },
+  { symbol: "F", sector: "Consumer Cyclical", category: "Automotive" },
+  { symbol: "GM", sector: "Consumer Cyclical", category: "Automotive" },
+  
+  // Apparel & Footwear
   { symbol: "NKE", sector: "Consumer Cyclical", category: "Apparel" },
+  { symbol: "LULU", sector: "Consumer Cyclical", category: "Apparel" },
+  
+  // Restaurants & Food Services
   { symbol: "MCD", sector: "Consumer Cyclical", category: "Restaurants" },
   { symbol: "SBUX", sector: "Consumer Cyclical", category: "Restaurants" },
+  { symbol: "YUM", sector: "Consumer Cyclical", category: "Restaurants" },
+  { symbol: "CMG", sector: "Consumer Cyclical", category: "Restaurants" },
+  { symbol: "DPZ", sector: "Consumer Cyclical", category: "Restaurants" },
+  
+  // Beverages
   { symbol: "KO", sector: "Consumer Defensive", category: "Beverages" },
   { symbol: "PEP", sector: "Consumer Defensive", category: "Beverages" },
-  { symbol: "WMT", sector: "Consumer Defensive", category: "Retail" },
+  { symbol: "MNST", sector: "Consumer Defensive", category: "Beverages" },
+  
+  // Household & Personal Products
   { symbol: "PG", sector: "Consumer Defensive", category: "Household Products" },
-  { symbol: "COST", sector: "Consumer Defensive", category: "Retail" }
+  { symbol: "CL", sector: "Consumer Defensive", category: "Household Products" },
+  { symbol: "KMB", sector: "Consumer Defensive", category: "Household Products" },
+  { symbol: "EL", sector: "Consumer Defensive", category: "Personal Products" },
+  { symbol: "CLX", sector: "Consumer Defensive", category: "Household Products" },
+  
+  // Food & Packaged Goods
+  { symbol: "MDLZ", sector: "Consumer Defensive", category: "Food" },
+  { symbol: "GIS", sector: "Consumer Defensive", category: "Food" },
+  { symbol: "HSY", sector: "Consumer Defensive", category: "Food" },
+  { symbol: "CAG", sector: "Consumer Defensive", category: "Food" },
+  { symbol: "KHC", sector: "Consumer Defensive", category: "Food" }
 ];
 
 // Energy Sector
 const ENERGY_STOCKS = [
+  // Oil & Gas - Integrated
   { symbol: "XOM", sector: "Energy", category: "Oil & Gas" },
   { symbol: "CVX", sector: "Energy", category: "Oil & Gas" },
   { symbol: "COP", sector: "Energy", category: "Oil & Gas" },
-  { symbol: "SLB", sector: "Energy", category: "Oil Services" },
   { symbol: "EOG", sector: "Energy", category: "Oil & Gas" },
-  { symbol: "NEE", sector: "Energy", category: "Utilities" }
-];
-
-// Industrial Sector
-const INDUSTRIAL_STOCKS = [
-  { symbol: "BA", sector: "Industrials", category: "Aerospace" },
-  { symbol: "CAT", sector: "Industrials", category: "Construction" },
-  { symbol: "GE", sector: "Industrials", category: "Conglomerate" },
-  { symbol: "HON", sector: "Industrials", category: "Manufacturing" },
-  { symbol: "UPS", sector: "Industrials", category: "Logistics" },
-  { symbol: "FDX", sector: "Industrials", category: "Logistics" },
-  { symbol: "LMT", sector: "Industrials", category: "Aerospace & Defense" }
+  { symbol: "PSX", sector: "Energy", category: "Oil & Gas" },
+  { symbol: "VLO", sector: "Energy", category: "Oil & Gas" },
+  { symbol: "MPC", sector: "Energy", category: "Oil & Gas" },
+  { symbol: "OXY", sector: "Energy", category: "Oil & Gas" },
+  
+  // Oil Services & Equipment
+  { symbol: "SLB", sector: "Energy", category: "Oil Services" },
+  { symbol: "HAL", sector: "Energy", category: "Oil Services" },
+  { symbol: "BKR", sector: "Energy", category: "Oil Services" },
+  
+  // Utilities & Renewables
+  { symbol: "NEE", sector: "Energy", category: "Utilities" },
+  { symbol: "DUK", sector: "Energy", category: "Utilities" },
+  { symbol: "SO", sector: "Energy", category: "Utilities" },
+  { symbol: "D", sector: "Energy", category: "Utilities" },
+  { symbol: "AEP", sector: "Energy", category: "Utilities" },
+  { symbol: "EXC", sector: "Energy", category: "Utilities" },
+  { symbol: "XEL", sector: "Energy", category: "Utilities" }
 ];
 
 // Communication Services
 const COMMUNICATION_STOCKS = [
+  // Internet & Search
   { symbol: "GOOGL", sector: "Communication Services", category: "Internet" },
+  { symbol: "GOOG", sector: "Communication Services", category: "Internet" },
+  
+  // Social Media
   { symbol: "META", sector: "Communication Services", category: "Social Media" },
+  { symbol: "SNAP", sector: "Communication Services", category: "Social Media" },
+  { symbol: "PINS", sector: "Communication Services", category: "Social Media" },
+  
+  // Entertainment & Streaming
   { symbol: "NFLX", sector: "Communication Services", category: "Entertainment" },
   { symbol: "DIS", sector: "Communication Services", category: "Entertainment" },
+  { symbol: "WBD", sector: "Communication Services", category: "Entertainment" },
+  { symbol: "CMCSA", sector: "Communication Services", category: "Media" },
+  { symbol: "CHTR", sector: "Communication Services", category: "Media" },
+  
+  // Telecom
   { symbol: "T", sector: "Communication Services", category: "Telecom" },
-  { symbol: "VZ", sector: "Communication Services", category: "Telecom" }
+  { symbol: "VZ", sector: "Communication Services", category: "Telecom" },
+  { symbol: "TMUS", sector: "Communication Services", category: "Telecom" },
+  
+  // Gaming & Interactive Media
+  { symbol: "EA", sector: "Communication Services", category: "Gaming" },
+  { symbol: "TTWO", sector: "Communication Services", category: "Gaming" },
+  { symbol: "RBLX", sector: "Communication Services", category: "Gaming" },
+  { symbol: "U", sector: "Communication Services", category: "Gaming" }
+];
+
+// Industrial Sector
+const INDUSTRIAL_STOCKS = [
+  // Aerospace & Defense
+  { symbol: "BA", sector: "Industrials", category: "Aerospace" },
+  { symbol: "LMT", sector: "Industrials", category: "Aerospace & Defense" },
+  { symbol: "RTX", sector: "Industrials", category: "Aerospace & Defense" },
+  { symbol: "NOC", sector: "Industrials", category: "Aerospace & Defense" },
+  { symbol: "GD", sector: "Industrials", category: "Aerospace & Defense" },
+  { symbol: "HII", sector: "Industrials", category: "Aerospace & Defense" },
+  
+  // Conglomerates & Manufacturing
+  { symbol: "GE", sector: "Industrials", category: "Conglomerate" },
+  { symbol: "HON", sector: "Industrials", category: "Manufacturing" },
+  { symbol: "MMM", sector: "Industrials", category: "Manufacturing" },
+  { symbol: "ITW", sector: "Industrials", category: "Manufacturing" },
+  { symbol: "EMR", sector: "Industrials", category: "Manufacturing" },
+  { symbol: "ETN", sector: "Industrials", category: "Manufacturing" },
+  { symbol: "PH", sector: "Industrials", category: "Manufacturing" },
+  
+  // Construction & Mining
+  { symbol: "CAT", sector: "Industrials", category: "Construction" },
+  { symbol: "DE", sector: "Industrials", category: "Construction" },
+  
+  // Logistics & Transportation
+  { symbol: "UPS", sector: "Industrials", category: "Logistics" },
+  { symbol: "FDX", sector: "Industrials", category: "Logistics" },
+  { symbol: "UNP", sector: "Industrials", category: "Transportation" },
+  { symbol: "NSC", sector: "Industrials", category: "Transportation" },
+  { symbol: "CSX", sector: "Industrials", category: "Transportation" },
+  { symbol: "DAL", sector: "Industrials", category: "Airlines" },
+  { symbol: "UAL", sector: "Industrials", category: "Airlines" },
+  { symbol: "AAL", sector: "Industrials", category: "Airlines" },
+  { symbol: "LUV", sector: "Industrials", category: "Airlines" },
+  
+  // Waste Management & Services
+  { symbol: "WM", sector: "Industrials", category: "Waste Management" },
+  { symbol: "RSG", sector: "Industrials", category: "Waste Management" }
 ];
 
 // All stocks combined
@@ -128,132 +284,78 @@ const ALL_STOCKS = [
 
 /**
  * Populate database with a single stock's complete data
+ * Now using Yahoo Finance as PRIMARY source (free, no limits)
+ * Alpha Vantage kept as fallback for specific data
  */
 async function populateStockData(symbol, sector, category) {
   console.log(`\n📊 Processing ${symbol} (${sector} - ${category})...`);
   
   try {
-    // Fetch company overview
-    console.log(`  Fetching overview...`);
-    const overview = await alphaVantageService.getCompanyOverview(symbol);
-    await alphaVantageService.delay(13000); // Rate limit: 5 req/min
+    // Step 1: Get comprehensive stock info from Yahoo Finance (FREE, NO LIMITS!)
+    console.log(`  ✨ Fetching data from Yahoo Finance (primary)...`);
+    const stockInfo = await yahooFinanceService.getStockInfo(symbol);
+    await yahooFinanceService.delay(500); // Be polite
     
-    // Fetch current quote
-    console.log(`  Fetching quote...`);
-    const quote = await alphaVantageService.getGlobalQuote(symbol);
-    await alphaVantageService.delay(13000);
+    const fundamentals = await yahooFinanceService.getFundamentals(symbol);
+    await yahooFinanceService.delay(500);
     
-    // Fetch income statement
-    console.log(`  Fetching income statement...`);
-    const income = await alphaVantageService.getIncomeStatement(symbol);
-    await alphaVantageService.delay(13000);
+    const shareholding = await yahooFinanceService.getShareholdingData(symbol);
+    await yahooFinanceService.delay(500);
     
-    // Fetch balance sheet
-    console.log(`  Fetching balance sheet...`);
-    const balance = await alphaVantageService.getBalanceSheet(symbol);
-    await alphaVantageService.delay(13000);
+    const yahooData = await yahooFinanceService.getComprehensiveEarningsAnalystData(symbol);
+    await yahooFinanceService.delay(500);
     
-    // Fetch cash flow
-    console.log(`  Fetching cash flow...`);
-    const cashFlow = await alphaVantageService.getCashFlow(symbol);
-    
-    // Insert stock master data
-    console.log(`  Inserting stock data...`);
+    // Step 2: Insert stock master data
+    console.log(`  💾 Inserting stock data...`);
     await stockDataService.upsertStock({
-      symbol: overview.symbol,
-      companyName: overview.companyName,
-      exchange: overview.exchange,
-      sector: overview.sector || sector,
-      industry: overview.industry || category,
+      symbol: symbol,
+      companyName: stockInfo.company_name,
+      exchange: stockInfo.exchange,
+      sector: stockInfo.sector || sector,
+      industry: stockInfo.industry || category,
       isActive: true
     });
     
-    // Calculate debt to FCF ratio
-    const latestCashFlow = cashFlow.quarterly[0];
-    const latestBalance = balance.quarterly[0];
-    const totalDebt = latestBalance?.totalDebt || null;
-    const freeCashFlow = latestCashFlow?.freeCashFlow || null;
-    const debtToFcfRatio = stockDataService.calculateDebtToFcfRatio(totalDebt, freeCashFlow);
-    
-    // Insert fundamentals
+    // Step 3: Insert fundamentals (PE, PEG, ratios, etc.)
     await stockDataService.upsertFundamentals({
-      symbol: overview.symbol,
-      peRatio: overview.peRatio,
-      pegRatio: overview.pegRatio,
-      totalDebt: totalDebt,
-      freeCashFlow: freeCashFlow,
-      debtToFcfRatio: debtToFcfRatio,
+      symbol: symbol,
+      peRatio: fundamentals.pe_ratio,
+      pegRatio: null, // PEG not directly available, can calculate if needed
+      totalDebt: null, // Available in financial statements if needed
+      freeCashFlow: null, // Available in cash flow if needed
+      debtToFcfRatio: null,
       updatedAt: new Date()
     });
     
-    // Insert quarterly financials with YoY growth and all fields
-    console.log(`  Inserting financials...`);
-    const quarterlyFinancials = income.quarterly.slice(0, 8); // Last 8 quarters
-    for (let i = 0; i < quarterlyFinancials.length; i++) {
-      const current = quarterlyFinancials[i];
-      const yearAgo = quarterlyFinancials[i + 4]; // 4 quarters ago
-      
-      const revenueYoyGrowth = yearAgo 
-        ? stockDataService.calculateYoyGrowth(current.revenue, yearAgo.revenue)
-        : null;
-      
-      const ebitdaYoyGrowth = yearAgo
-        ? stockDataService.calculateYoyGrowth(current.ebitda, yearAgo.ebitda)
-        : null;
-      
-      // Get corresponding balance sheet data for the same period
-      const balanceData = balance.quarterly.find(
-        b => b.fiscalDateEnding === current.fiscalDateEnding
-      ) || {};
-      
-      // Calculate margins
-      const grossMargin = current.revenue && current.grossProfit
-        ? (current.grossProfit / current.revenue) * 100
-        : null;
-      
-      const operatingMargin = current.revenue && current.operatingIncome
-        ? (current.operatingIncome / current.revenue) * 100
-        : null;
-      
-      const netMargin = current.revenue && current.netIncome
-        ? (current.netIncome / current.revenue) * 100
-        : null;
-      
-      await stockDataService.insertFinancialPerformance({
-        symbol: overview.symbol,
-        periodType: "Quarterly",
-        period: current.fiscalDateEnding,
-        revenue: current.revenue,
-        ebitda: current.ebitda,
-        revenueYoyGrowth: revenueYoyGrowth,
-        ebitdaYoyGrowth: ebitdaYoyGrowth,
-        grossProfit: current.grossProfit,
-        operatingIncome: current.operatingIncome,
-        netIncome: current.netIncome,
-        grossMargin: grossMargin,
-        operatingMargin: operatingMargin,
-        netMargin: netMargin,
-        costOfRevenue: current.costOfRevenue,
-        totalAssets: balanceData.totalAssets,
-        totalLiabilities: balanceData.totalLiabilities
-        // Note: EPS, shares, R&D, SG&A not available in Alpha Vantage API response
-      });
-    }
+    // Step 4: Insert shareholding data
+    await stockDataService.upsertShareholding({
+      symbol: symbol,
+      promoterHoldingPercentage: shareholding.promoter_holding_percentage,
+      institutionalHoldingPercentage: shareholding.institutional_holding_percentage,
+      publicHoldingPercentage: shareholding.public_holding_percentage,
+      mutualFundHolding: shareholding.mutual_fund_holding,
+      totalShares: shareholding.total_shares,
+      promoterShares: shareholding.promoter_shares,
+      institutionalShares: shareholding.institutional_shares,
+      publicShares: shareholding.public_shares,
+      insiderTransactionsLastQuarter: shareholding.insider_transactions_last_quarter,
+      insiderBuyCount: shareholding.insider_buy_count,
+      insiderSellCount: shareholding.insider_sell_count,
+      majorShareholdersCount: shareholding.major_shareholders_count,
+      top10ShareholdersPercentage: shareholding.top_10_shareholders_percentage,
+      lastUpdated: shareholding.last_updated
+    });
     
-    // Fetch and insert earnings and analyst data from Yahoo Finance
-    console.log(`  Fetching earnings & analyst data from Yahoo Finance...`);
-    const yahooData = await yahooFinanceService.getComprehensiveEarningsAnalystData(symbol);
-    await yahooFinanceService.delay(1000); // Be polite with requests
-    
+    // Step 5: Insert earnings and analyst data
     await stockDataService.upsertEarningsAnalystData({
-      symbol: overview.symbol,
+      symbol: symbol,
       earningsDate: yahooData.earningsDate,
       estimatedEps: yahooData.estimatedEps,
       expectedRevenue: yahooData.expectedRevenue,
       beatProbability: yahooData.beatProbability,
       analystTargetPriceLow: yahooData.analystTargetPriceLow,
       analystTargetPriceHigh: yahooData.analystTargetPriceHigh,
-      currentPrice: yahooData.currentPrice || quote.price,
+      currentPrice: yahooData.currentPrice,
       previousEps: yahooData.previousEps,
       epsSurprise: yahooData.epsSurprise,
       epsSurprisePercentage: yahooData.epsSurprisePercentage,
@@ -266,8 +368,8 @@ async function populateStockData(symbol, sector, category) {
       consensusRating: yahooData.consensusRating
     });
     
-    console.log(`  ✅ ${symbol} completed successfully!`);
-    return { success: true, symbol };
+    console.log(`  ✅ ${symbol} completed successfully (Yahoo Finance)!`);
+    return { success: true, symbol, source: 'Yahoo Finance' };
     
   } catch (error) {
     console.error(`  ❌ Error processing ${symbol}:`, error.message);
@@ -338,10 +440,10 @@ async function populateAllStocks(limit = null, sectorFilter = null) {
     const result = await populateStockData(symbol, sector, category);
     results.push(result);
     
-    // Add delay between stocks to respect rate limits
+    // Small delay to be polite (Yahoo Finance has no limits but we're being respectful)
     if (i < stocksToProcess.length - 1) {
-      console.log(`\n⏳ Waiting 15 seconds before next stock...`);
-      await alphaVantageService.delay(15000);
+      console.log(`\n⏳ Waiting 3 seconds before next stock...`);
+      await yahooFinanceService.delay(3000); // Just 3 seconds instead of 15!
     }
   }
   
@@ -355,6 +457,7 @@ async function populateAllStocks(limit = null, sectorFilter = null) {
   console.log(`✅ Successful: ${successful}`);
   console.log(`❌ Failed: ${failed}`);
   console.log(`📊 Total: ${results.length}`);
+  console.log(`⚡ Powered by: Yahoo Finance (Free, No Limits)`);
   
   if (failed > 0) {
     console.log("\n❌ Failed stocks:");
@@ -368,43 +471,104 @@ async function populateAllStocks(limit = null, sectorFilter = null) {
 
 /**
  * Update existing stocks with latest data
+ * Uses Yahoo Finance (FREE, NO RATE LIMITS)
  */
 async function updateExistingStocks() {
-  console.log("🔄 Updating existing stocks...\n");
+  console.log("🔄 Updating existing stocks with Yahoo Finance...\n");
   
-  // Get all active stocks from database
-  const allStocks = await stockDataService.getStocksBySector("Technology");
+  // Get all active stocks from database (all sectors)
+  const query = 'SELECT symbol, sector FROM stocks WHERE is_active = TRUE ORDER BY symbol';
+  const result = await pool.query(query);
+  const allStocks = result.rows;
   
   console.log(`Found ${allStocks.length} stocks to update\n`);
   
   const results = [];
-  for (const stock of allStocks) {
+  for (let i = 0; i < allStocks.length; i++) {
+    const stock = allStocks[i];
     try {
-      console.log(`Updating ${stock.symbol}...`);
+      console.log(`[${i + 1}/${allStocks.length}] Updating ${stock.symbol}...`);
       
-      const overview = await alphaVantageService.getCompanyOverview(stock.symbol);
-      await alphaVantageService.delay(13000);
+      // Fetch fresh data from Yahoo Finance
+      const fundamentals = await yahooFinanceService.getFundamentals(stock.symbol);
+      await yahooFinanceService.delay(500);
       
-      const quote = await alphaVantageService.getGlobalQuote(stock.symbol);
+      const shareholding = await yahooFinanceService.getShareholdingData(stock.symbol);
+      await yahooFinanceService.delay(500);
       
-      // Update fundamentals
+      const yahooData = await yahooFinanceService.getComprehensiveEarningsAnalystData(stock.symbol);
+      await yahooFinanceService.delay(500);
+      
+      // Update fundamentals table
       await stockDataService.upsertFundamentals({
         symbol: stock.symbol,
-        peRatio: overview.peRatio,
-        pegRatio: overview.pegRatio,
+        peRatio: fundamentals.peRatio,
+        pegRatio: fundamentals.pegRatio,
+        pbRatio: fundamentals.pbRatio,
+        psRatio: fundamentals.psRatio,
+        dividendYield: fundamentals.dividendYield,
+        beta: fundamentals.beta,
+        eps: fundamentals.eps,
+        bookValuePerShare: fundamentals.bookValuePerShare,
+        profitMargin: fundamentals.profitMargin,
+        operatingMargin: fundamentals.operatingMargin,
+        returnOnEquity: fundamentals.returnOnEquity,
+        returnOnAssets: fundamentals.returnOnAssets,
+        currentRatio: fundamentals.currentRatio,
+        quickRatio: fundamentals.quickRatio,
+        interestCoverage: fundamentals.interestCoverage,
+        debtToEquityRatio: fundamentals.debtToEquityRatio,
+        totalDebt: fundamentals.totalDebt,
+        freeCashFlow: fundamentals.freeCashFlow,
+        debtToFcfRatio: fundamentals.debtToFcfRatio,
         updatedAt: new Date()
       });
       
-      // Update current price
+      // Update shareholding table
+      await stockDataService.upsertShareholding({
+        symbol: stock.symbol,
+        promoterHoldingPercentage: shareholding.promoterHoldingPercentage,
+        institutionalHoldingPercentage: shareholding.institutionalHoldingPercentage,
+        publicHoldingPercentage: shareholding.publicHoldingPercentage,
+        foreignInstitutionalHolding: shareholding.foreignInstitutionalHolding,
+        domesticInstitutionalHolding: shareholding.domesticInstitutionalHolding,
+        mutualFundHolding: shareholding.mutualFundHolding,
+        retailHolding: shareholding.retailHolding,
+        promoterPledgePercentage: shareholding.promoterPledgePercentage
+      });
+      
+      // Update earnings and analyst data
       await stockDataService.upsertEarningsAnalystData({
         symbol: stock.symbol,
-        currentPrice: quote.price
+        earningsDate: yahooData.earnings?.earningsDate || null,
+        estimatedEps: yahooData.earnings?.estimatedEps || null,
+        expectedRevenue: yahooData.earnings?.expectedRevenue || null,
+        beatProbability: yahooData.earnings?.beatProbability || null,
+        previousEps: yahooData.earnings?.previousEps || null,
+        epsSurprise: yahooData.earnings?.epsSurprise || null,
+        epsSurprisePercentage: yahooData.earnings?.epsSurprisePercentage || null,
+        previousRevenue: yahooData.earnings?.previousRevenue || null,
+        revenueSurprise: yahooData.earnings?.revenueSurprise || null,
+        revenueSurprisePercentage: yahooData.earnings?.revenueSurprisePercentage || null,
+        analystTargetPriceLow: yahooData.analyst?.targetPriceLow || null,
+        analystTargetPriceHigh: yahooData.analyst?.targetPriceHigh || null,
+        currentPrice: yahooData.analyst?.currentPrice || null,
+        analystCount: yahooData.analyst?.analystCount || null,
+        strongBuyCount: yahooData.analyst?.strongBuyCount || null,
+        buyCount: yahooData.analyst?.buyCount || null,
+        holdCount: yahooData.analyst?.holdCount || null,
+        sellCount: yahooData.analyst?.sellCount || null,
+        strongSellCount: yahooData.analyst?.strongSellCount || null,
+        consensusRating: yahooData.analyst?.consensusRating || null
       });
       
       console.log(`✅ ${stock.symbol} updated`);
       results.push({ success: true, symbol: stock.symbol });
       
-      await alphaVantageService.delay(15000);
+      // Small delay to be polite (1.5 seconds between stocks)
+      if (i < allStocks.length - 1) {
+        await yahooFinanceService.delay(1500);
+      }
       
     } catch (error) {
       console.error(`❌ Error updating ${stock.symbol}:`, error.message);

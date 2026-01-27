@@ -18,6 +18,18 @@ const FIELD_TO_TABLE = {
   'institutional_ownership_percentage': 's'
 };
 
+// Fields that represent percentages (stored as decimals: 0.2 = 20%)
+const PERCENTAGE_FIELDS = [
+  'promoter_holding_percentage', 'institutional_holding_percentage',
+  'public_holding_percentage', 'foreign_institutional_holding',
+  'domestic_institutional_holding', 'mutual_fund_holding', 
+  'retail_holding', 'promoter_pledge_percentage',
+  'insider_ownership_percentage', 'institutional_ownership_percentage',
+  'dividend_yield', 'profit_margin', 'operating_margin',
+  'return_on_equity', 'return_on_assets', 'gross_margin',
+  'operating_margin', 'net_margin'
+];
+
 // Map LLM sector names to database sector names
 const SECTOR_MAPPING = {
   'Technology': 'TECHNOLOGY',
@@ -37,6 +49,7 @@ const SECTOR_MAPPING = {
  * @param {any} value - Value to escape
  * @returns {string} - Escaped value
  */
+
 function escapeSQLValue(value) {
   if (typeof value === 'number') {
     return value.toString();
@@ -78,10 +91,23 @@ function compileDSLToSQL(dsl) {
       s.symbol, 
       s.company_name, 
       s.sector,
+      s.industry,
       s.market_cap,
       f.pe_ratio,
+      f.pb_ratio,
       f.peg_ratio,
-      sh.promoter_holding_percentage
+      f.debt_to_equity_ratio as debt_to_equity,
+      ROUND(CAST(f.return_on_equity * 100 AS numeric), 2) as roe,
+      ROUND(CAST(f.dividend_yield * 100 AS numeric), 2) as dividend_yield,
+      f.eps,
+      f.book_value_per_share,
+      ROUND(CAST(f.profit_margin * 100 AS numeric), 2) as profit_margin,
+      ROUND(CAST(f.operating_margin * 100 AS numeric), 2) as operating_margin,
+      ROUND(CAST(f.return_on_assets * 100 AS numeric), 2) as return_on_assets,
+      f.current_ratio,
+      f.quick_ratio,
+      f.beta,
+      ROUND(CAST(sh.promoter_holding_percentage AS numeric), 2) as promoter_holding
     FROM stocks s
     LEFT JOIN fundamentals f ON s.symbol = f.symbol
     LEFT JOIN shareholding sh ON s.symbol = sh.symbol
@@ -99,7 +125,6 @@ function compileDSLToSQL(dsl) {
     // Add condition filters
     dsl.conditions.forEach((cond, index) => {
       const tableAlias = FIELD_TO_TABLE[cond.field] || 's';
-      const safeValue = escapeSQLValue(cond.value);
       
       // Validate operator to prevent SQL injection
       const validOperators = ['<', '>', '<=', '>=', '=', '!='];
@@ -107,7 +132,24 @@ function compileDSLToSQL(dsl) {
         throw new Error(`Invalid operator: ${cond.operator}`);
       }
       
-      baseQuery += ` AND ${tableAlias}.${cond.field} ${cond.operator} ${safeValue}`;
+      // Convert percentage values from whole numbers (20) to decimals (0.2) for database
+      let queryValue = cond.value;
+      if (PERCENTAGE_FIELDS.includes(cond.field) && typeof cond.value === 'number') {
+        queryValue = cond.value / 100; // Convert 20 to 0.2
+      }
+      
+      const safeValue = escapeSQLValue(queryValue);
+      
+      // For percentage fields with equality operator, use a small tolerance range
+      // to handle floating-point precision issues
+      if (PERCENTAGE_FIELDS.includes(cond.field) && cond.operator === '=' && typeof queryValue === 'number') {
+        const tolerance = 0.02; // 2% tolerance (in decimal form)
+        const lowerBound = queryValue - tolerance;
+        const upperBound = queryValue + tolerance;
+        baseQuery += ` AND ${tableAlias}.${cond.field} BETWEEN ${lowerBound} AND ${upperBound}`;
+      } else {
+        baseQuery += ` AND ${tableAlias}.${cond.field} ${cond.operator} ${safeValue}`;
+      }
     });
 
     // Add ordering
@@ -133,4 +175,4 @@ function compileDSLToSQL(dsl) {
   }
 }
 
-module.exports = { compileDSLToSQL, escapeSQLValue, FIELD_TO_TABLE };
+module.exports = { compileDSLToSQL, escapeSQLValue, FIELD_TO_TABLE, PERCENTAGE_FIELDS };

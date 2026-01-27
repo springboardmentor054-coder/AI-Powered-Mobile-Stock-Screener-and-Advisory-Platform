@@ -2,10 +2,12 @@ const express = require("express");
 const { parseQueryToDSL } = require("../services/llmParser");
 const { compileDSLToSQL } = require("../services/screenerCompiler");
 const pool = require("../config/database");
+const authenticateToken = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/run", async (req, res) => {
+// Protected route - requires authentication
+router.post("/run", authenticateToken, async (req, res) => {
   try {
     const { query } = req.body;
 
@@ -60,14 +62,14 @@ router.post("/run", async (req, res) => {
     const result = await pool.query(sqlResult.sql);
     const stocks = result.rows;
 
-    // Success response with actual data
+    // Success response with format expected by frontend
     res.json({
       success: true,
+      data: stocks,
+      dsl: JSON.stringify(parseResult.dsl),
+      sql: sqlResult.sql,
+      count: stocks.length,
       userQuery: query,
-      parsedDSL: parseResult.dsl,
-      generatedSQL: sqlResult.sql,
-      resultsCount: stocks.length,
-      stocks: stocks,
       usedLLM: parseResult.usedLLM || false
     });
 

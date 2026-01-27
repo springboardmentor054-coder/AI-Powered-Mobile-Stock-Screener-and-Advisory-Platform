@@ -42,6 +42,7 @@ async function dailyUpdate() {
     console.log(`⏱️  Duration: ${duration} minutes`);
     console.log(`✅ Updated: ${successful} stocks`);
     console.log(`❌ Failed: ${failed} stocks`);
+    console.log(`⚡ Data Source: Yahoo Finance (Free, No Rate Limits)`);
     
   } catch (error) {
     console.error("\n❌ Daily update failed:", error.message);
@@ -52,16 +53,16 @@ async function dailyUpdate() {
 }
 
 /**
- * Schedule daily update at 6:00 AM
- * Cron format: "0 6 * * *" = At 06:00 every day
+ * Schedule daily update at 8:00 PM
+ * Cron format: "0 20 * * *" = At 20:00 (8:00 PM) every day
  */
 function startScheduler() {
   console.log("\n📅 Starting daily update scheduler...");
-  console.log("   Schedule: Every day at 6:00 AM");
+  console.log("   Schedule: Every day at 8:00 PM");
   console.log("   Status: Active ✅\n");
   
   // Schedule daily update
-  cron.schedule("0 6 * * *", () => {
+  cron.schedule("0 20 * * *", () => {
     dailyUpdate();
   });
   
