@@ -17,9 +17,10 @@ import {
 
 type HeaderProps = {
   onNewChat?: () => void;
+  onHome?: () => void;
 };
 
-export default function Header({ onNewChat }: HeaderProps) {
+export default function Header({ onNewChat, onHome }: HeaderProps) {
   const [fontsLoaded] = useFonts({ PressStart2P_400Regular });
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -181,7 +182,13 @@ export default function Header({ onNewChat }: HeaderProps) {
             {/* Menu Items */}
             <View style={styles.menuContainer}>
               {/* Home */}
-              <TouchableOpacity style={styles.menuItem}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  onHome?.();
+                  setDrawerOpen(false);
+                }}
+              >
                 <MaterialIcons name="home" size={24} color="#87bfff" />
                 <Text style={styles.menuItemText}>Home</Text>
               </TouchableOpacity>

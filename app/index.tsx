@@ -8,7 +8,10 @@ export default function Index() {
 
   return (
     <View style={{ backgroundColor: "#f8f2e8", flex: 1 }}>
-      <Header onNewChat={() => setShowInputOnly(true)} />
+      <Header
+        onNewChat={() => setShowInputOnly(true)}
+        onHome={() => setShowInputOnly(false)}
+      />
       <Hero
         inputOnly={showInputOnly}
         onExitInputOnly={() => setShowInputOnly(false)}
