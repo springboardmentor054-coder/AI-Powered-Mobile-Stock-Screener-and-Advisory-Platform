@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
 import '../services/watchlist_service.dart';
-import '../services/api_service.dart';
 import '../services/market_data_service.dart';
 import '../models/stock_model.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';

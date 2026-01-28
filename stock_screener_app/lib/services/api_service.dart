@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // Base URL for the backend API
-  // Use PC's IP address to connect from phone (both on same WiFi: 192.168.1.x)
-  static const String baseUrl = 'http://192.168.1.6:5000';
+  // localhost = Chrome/desktop, 10.0.2.2 = Android emulator, 192.168.x.x = physical device
+  static const String baseUrl = 'http://10.20.136.30:5000';
 
   /// Fetches stocks based on natural language query
   /// 
@@ -22,19 +22,31 @@ class ApiService {
         body: jsonEncode({
           'query': query,
         }),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout - server took too long to respond');
+        },
       );
 
       print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
+        
+        // Check if success field exists and is true
+        if (jsonData['success'] != true) {
+          throw Exception('Server returned error: ${jsonData['error'] ?? 'Unknown error'}');
+        }
+        
         final data = jsonData['data'] as List<dynamic>;
         print('✅ Success: Received ${data.length} stocks');
         
         return data;
       } else if (response.statusCode == 400) {
         final error = jsonDecode(response.body);
-        throw Exception('Invalid query: ${error['details'] ?? error['error']}');
+        throw Exception('Invalid query: ${error['error'] ?? 'Bad request'}');
       } else {
         throw Exception('Server error: ${response.statusCode}');
       }

@@ -3,6 +3,7 @@
  * Industry-grade portfolio management and advisory platform
  */
 
+require("dotenv").config();
 const pool = require("../database");
 const realTimeAnalysis = require("./realTimeAnalysis.service");
 
@@ -14,6 +15,24 @@ class PortfolioAdvisoryService {
    */
   async analyzePortfolio(holdings) {
     try {
+      // Input validation
+      if (!Array.isArray(holdings) || holdings.length === 0) {
+        throw new Error('Holdings must be a non-empty array');
+      }
+      
+      // Validate each holding
+      holdings.forEach((holding, index) => {
+        if (!holding.symbol || typeof holding.symbol !== 'string') {
+          throw new Error(`Invalid symbol at index ${index}`);
+        }
+        if (typeof holding.quantity !== 'number' || holding.quantity <= 0) {
+          throw new Error(`Invalid quantity at index ${index}`);
+        }
+        if (typeof holding.avg_price !== 'number' || holding.avg_price <= 0) {
+          throw new Error(`Invalid avg_price at index ${index}`);
+        }
+      });
+      
       const analyses = await Promise.all(
         holdings.map(holding => this.analyzeHolding(holding))
       );

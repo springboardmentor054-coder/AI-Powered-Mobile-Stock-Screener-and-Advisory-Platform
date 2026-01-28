@@ -1,7 +1,12 @@
+require("dotenv").config();
 const axios = require("axios");
 
 async function fetchCompanyOverview(symbol) {
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('ALPHA_VANTAGE_API_KEY is not configured');
+  }
 
   const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${apiKey}`;
 

@@ -4,6 +4,7 @@
  * Supports: Alpha Vantage, Yahoo Finance, and manual CSV imports
  */
 
+require("dotenv").config();
 const pool = require("../database");
 const axios = require("axios");
 const { fetchCompanyOverview } = require("./marketData.service");

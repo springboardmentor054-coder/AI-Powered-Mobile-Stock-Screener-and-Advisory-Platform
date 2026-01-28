@@ -3,6 +3,7 @@
  * Industry-grade real-time data analysis with technical indicators
  */
 
+require("dotenv").config();
 const pool = require("../database");
 
 class RealTimeAnalysisService {
@@ -22,6 +23,15 @@ class RealTimeAnalysisService {
    */
   async analyzeStock(symbol) {
     try {
+      // Input validation
+      if (!symbol || typeof symbol !== 'string') {
+        throw new Error('Symbol must be a non-empty string');
+      }
+      
+      if (symbol.length > 20 || !/^[A-Za-z0-9]+$/.test(symbol)) {
+        throw new Error('Invalid symbol format');
+      }
+      
       const [fundamentals, technical, sentiment, peers] = await Promise.all([
         this.getFundamentalAnalysis(symbol),
         this.getTechnicalAnalysis(symbol),

@@ -1,3 +1,4 @@
+require("dotenv").config();
 const redis = require("redis");
 
 // Create Redis client with retry strategy disabled

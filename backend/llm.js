@@ -1,4 +1,10 @@
+require("dotenv").config();
 const Groq = require("groq-sdk");
+
+if (!process.env.GROQ_API_KEY) {
+  console.error('❌ GROQ_API_KEY is not set in environment variables');
+  throw new Error('GROQ_API_KEY is required');
+}
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,

@@ -66,13 +66,17 @@ function compileDSL(dsl) {
 
   // Add last_quarters filter (optional)
   if (dsl.last_quarters) {
+    const monthsBack = parseInt(dsl.last_quarters) * 3;
     sql += ` AND c.symbol IN (
       SELECT company_id
       FROM quarterly_financials
-      WHERE quarter >= CURRENT_DATE - INTERVAL '${dsl.last_quarters * 3} months'
+      WHERE quarter >= CURRENT_DATE - INTERVAL '1 month' * $${paramIndex}
       GROUP BY company_id
-      HAVING COUNT(*) = ${dsl.last_quarters} AND MIN(revenue) > 0
+      HAVING COUNT(*) = $${paramIndex + 1} AND MIN(revenue) > 0
     )`;
+    params.push(monthsBack);
+    params.push(parseInt(dsl.last_quarters));
+    paramIndex += 2;
   }
 
   // Add ordering

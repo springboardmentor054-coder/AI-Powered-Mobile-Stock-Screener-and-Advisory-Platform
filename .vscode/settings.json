@@ -1,3 +1,18 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/.git": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true
+    },
+    "eslint.workingDirectories": [
+        "./backend"
+    ],
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/.git/objects/**": true
+    }
 }

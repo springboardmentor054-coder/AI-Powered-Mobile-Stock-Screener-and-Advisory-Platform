@@ -141,9 +141,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
               // Header
               _buildHeader(context, colorScheme),
 
-              // Insights Section
-              if (widget.results.isNotEmpty) _buildInsights(insights, colorScheme),
-
               // Sort Options
               if (widget.results.isNotEmpty) _buildSortBar(colorScheme),
 
@@ -567,7 +564,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
 
   Widget _buildResultsList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Extra bottom padding
       itemCount: _sortedResults.length,
       itemBuilder: (context, index) {
         return FadeTransition(
@@ -601,7 +598,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     final stockModel = Stock.fromJson(stock);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -611,12 +608,12 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             AppColors.surfaceVariant.withOpacity(0.3),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -633,7 +630,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -726,14 +723,14 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 
                 // Metrics Grid
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceVariant.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(12),
+                    color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
                     children: [
@@ -763,7 +760,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                         ],
                       ),
                       if (marketCap > 0 || revenueGrowth > 0) ...[
-                        const Divider(height: 24),
+                        const Divider(height: 16),
                         Row(
                           children: [
                             if (marketCap > 0)
@@ -802,24 +799,28 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: Colors.grey.shade600),
+            Icon(icon, size: 12, color: Colors.grey.shade600),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.shade600,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -833,7 +834,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
           Container(
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceVariant.withOpacity(0.5),
+              color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(

@@ -9,6 +9,11 @@ async function fetchAndStoreStock(req, res) {
     if (!ticker) {
       return res.status(400).json({ error: "Ticker is required" });
     }
+    
+    // Validate ticker format (basic validation)
+    if (typeof ticker !== 'string' || ticker.length > 20 || !/^[A-Za-z0-9]+$/.test(ticker)) {
+      return res.status(400).json({ error: "Invalid ticker format" });
+    }
 
     const data = await fetchCompanyOverview(ticker);
 

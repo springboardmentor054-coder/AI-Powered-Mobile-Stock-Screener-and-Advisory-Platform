@@ -20,6 +20,11 @@ router.post('/analyze-stock', async (req, res) => {
     if (!symbol) {
       return res.status(400).json({ error: 'Stock symbol is required' });
     }
+    
+    // Validate symbol format
+    if (typeof symbol !== 'string' || symbol.length > 20 || !/^[A-Za-z0-9]+$/.test(symbol)) {
+      return res.status(400).json({ error: 'Invalid symbol format' });
+    }
 
     console.log(`[Advisory] Analyzing stock: ${symbol}`);
     const analysis = await realTimeAnalysis.analyzeStock(symbol.toUpperCase());

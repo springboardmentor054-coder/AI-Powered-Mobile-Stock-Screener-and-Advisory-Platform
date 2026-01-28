@@ -17,6 +17,7 @@ class HealthMonitorService {
     };
     this.lastCheck = null;
     this.errors = [];
+    this.monitoringInterval = null;
   }
 
   /**
@@ -226,12 +227,32 @@ class HealthMonitorService {
     console.log(`⏰ Starting health monitoring (every ${intervalSeconds}s)`);
 
     // Initial check
-    this.performHealthCheck();
+    this.performHealthCheck().catch(err => {
+      console.error('Initial health check failed:', err);
+    });
+
+    // Clear existing interval if any
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+    }
 
     // Periodic checks
-    setInterval(() => {
-      this.performHealthCheck();
+    this.monitoringInterval = setInterval(() => {
+      this.performHealthCheck().catch(err => {
+        console.error('Periodic health check failed:', err);
+      });
     }, intervalSeconds * 1000);
+  }
+
+  /**
+   * Stop periodic monitoring
+   */
+  stopMonitoring() {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+      console.log('⏰ Health monitoring stopped');
+    }
   }
 }
 

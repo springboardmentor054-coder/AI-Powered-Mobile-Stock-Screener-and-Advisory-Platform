@@ -1,5 +1,4 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class WatchlistService {
   static const String _watchlistKey = 'user_watchlist';
