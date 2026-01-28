@@ -1,0 +1,5 @@
+"**/.env" 
+"**/*.env" 
+"backend/llm-parser-service/.env" 
+"node_modules/" 
+"MobileApp/node_modules/" 
