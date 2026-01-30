@@ -1,0 +1,130 @@
+
+-- ========== COMPANY INFO ==========
+CREATE TABLE IF NOT EXISTS company_info (
+ id SERIAL PRIMARY KEY,
+ symbol VARCHAR(20) UNIQUE,
+ company_name VARCHAR(200),
+ sector VARCHAR(100),
+ industry VARCHAR(100),
+ founded_year INT,
+ headquarters VARCHAR(150),
+ ceo VARCHAR(100),
+ website VARCHAR(150),
+ employees INT,
+ business_summary TEXT,
+ products TEXT,
+ competitors TEXT,
+ exchange VARCHAR(50),
+ country VARCHAR(50),
+ promoter_holding FLOAT,
+ fii_holding FLOAT,
+ dii_holding FLOAT,
+ public_holding FLOAT,
+ market_cap_category VARCHAR(50),
+ updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ========== FUNDAMENTALS ==========
+CREATE TABLE IF NOT EXISTS fundamentals (
+ id SERIAL PRIMARY KEY,
+ symbol VARCHAR(20),
+ pe_ratio FLOAT,
+ peg_ratio FLOAT,
+ pb_ratio FLOAT,
+ roe FLOAT,
+ roa FLOAT,
+ debt_to_equity FLOAT,
+ current_ratio FLOAT,
+ quick_ratio FLOAT,
+ eps FLOAT,
+ book_value FLOAT,
+ market_cap BIGINT,
+ enterprise_value BIGINT,
+ dividend_yield FLOAT,
+ payout_ratio FLOAT,
+ free_cash_flow BIGINT,
+ operating_margin FLOAT,
+ profit_margin FLOAT,
+ revenue_growth_yoy FLOAT,
+ ebitda_growth_yoy FLOAT,
+ updated_at TIMESTAMP DEFAULT NOW(),
+ FOREIGN KEY(symbol) REFERENCES company_info(symbol)
+);
+
+-- ========== QUARTERLY FINANCIALS ==========
+CREATE TABLE IF NOT EXISTS quarterly_financials (
+ id SERIAL PRIMARY KEY,
+ symbol VARCHAR(20),
+ quarter VARCHAR(10),
+ revenue BIGINT,
+ revenue_growth FLOAT,
+ ebitda BIGINT,
+ ebitda_growth FLOAT,
+ net_profit BIGINT,
+ profit_growth FLOAT,
+ eps FLOAT,
+ operating_expenses BIGINT,
+ interest_expense BIGINT,
+ tax_expense BIGINT,
+ depreciation BIGINT,
+ cash_from_ops BIGINT,
+ capex BIGINT,
+ free_cash_flow BIGINT,
+ current_assets BIGINT,
+ current_liabilities BIGINT,
+ debt BIGINT,
+ updated_at TIMESTAMP DEFAULT NOW(),
+ FOREIGN KEY(symbol) REFERENCES company_info(symbol)
+);
+
+-- ========== ANALYST TARGETS ==========
+CREATE TABLE IF NOT EXISTS analyst_targets (
+ id SERIAL PRIMARY KEY,
+ symbol VARCHAR(20),
+ analyst_firm VARCHAR(150),
+ analyst_name VARCHAR(100),
+ rating VARCHAR(20),
+ target_price FLOAT,
+ current_price FLOAT,
+ upside_percent FLOAT,
+ recommendation_date DATE,
+ next_earnings_date DATE,
+ eps_estimate FLOAT,
+ revenue_estimate BIGINT,
+ consensus_rating VARCHAR(20),
+ total_analysts INT,
+ buy_count INT,
+ hold_count INT,
+ sell_count INT,
+ avg_target FLOAT,
+ high_target FLOAT,
+ low_target FLOAT,
+ updated_at TIMESTAMP DEFAULT NOW(),
+ FOREIGN KEY(symbol) REFERENCES company_info(symbol)
+);
+
+-- ========== CORPORATE EVENTS ==========
+CREATE TABLE IF NOT EXISTS corporate_events (
+ id SERIAL PRIMARY KEY,
+ symbol VARCHAR(20),
+ event_type VARCHAR(100),
+ event_title VARCHAR(200),
+ description TEXT,
+ event_date DATE,
+ announcement_date DATE,
+ buyback BOOLEAN,
+ dividend BOOLEAN,
+ bonus_issue BOOLEAN,
+ stock_split BOOLEAN,
+ merger BOOLEAN,
+ acquisition BOOLEAN,
+ insider_trading BOOLEAN,
+ promoter_buy BOOLEAN,
+ board_meeting BOOLEAN,
+ earnings_release BOOLEAN,
+ rights_issue BOOLEAN,
+ credit_rating_change BOOLEAN,
+ regulatory_update BOOLEAN,
+ updated_at TIMESTAMP DEFAULT NOW(),
+ FOREIGN KEY(symbol) REFERENCES company_info(symbol)
+);
