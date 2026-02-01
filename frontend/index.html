@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Stock Screener Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="logo">📈 StockAI</div>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#screener">Screener</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a href="/logout">Logout</a></li>
+    </ul>
+  </nav>
+
+  <!-- HOME SECTION -->
+  <section id="home" class="home-section">
+    <h2>AI-Powered Stock Screener</h2>
+    <p>
+      Analyze stocks using natural language queries.
+      Get instant financial insights and visualizations.
+    </p>
+    <a href="#screener" class="primary-btn">Start Screening</a>
+  </section>
+
+  <!-- DASHBOARD -->
+  <div class="dashboard" id="screener">
+
+    <!-- Header -->
+    <header class="header">
+      <h1>📊 AI Stock Screener</h1>
+      <p>Ask questions like: <em>“Show IT stocks with PE below 20”</em></p>
+    </header>
+
+    <!-- Query Section -->
+    <section class="query-section">
+      <input id="query" type="text" placeholder="Type your stock query..." />
+      <button onclick="searchStocks()">Analyze</button>
+    </section>
+
+    <!-- Quick Filters -->
+    <section class="quick-filters">
+      <button onclick="quickQuery('IT stocks')">IT</button>
+      <button onclick="quickQuery('Energy stocks')">Energy</button>
+      <button onclick="quickQuery('Stocks with ROE above 15')">High ROE</button>
+      <button onclick="quickQuery('Low PE stocks')">Low PE</button>
+    </section>
+
+    <!-- Results -->
+    <section id="result" class="result-section"></section>
+
+    <!-- Charts -->
+    <section class="charts">
+      <canvas id="stockChart"></canvas>
+    </section>
+
+  </div>
+
+  <!-- CONTACT -->
+  <section id="contact" class="contact-section">
+    <h2>Contact</h2>
+    <p>Have questions or suggestions?</p>
+
+    <div class="contact-card">
+      <p><strong>Email:</strong> support@stockai.com</p>
+      <p><strong>GitHub:</strong> github.com/yourusername</p>
+      <p><strong>LinkedIn:</strong> linkedin.com/in/yourprofile</p>
+    </div>
+  </section>
+
+  <!-- Script -->
+  <script src="script.js"></script>
+</body>
+</html>

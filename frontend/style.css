@@ -1,0 +1,165 @@
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #0f172a, #020617);
+  color: #e5e7eb;
+}
+
+/* NAVBAR */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 40px;
+  background: rgba(2, 6, 23, 0.9);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: #38bdf8;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 25px;
+}
+
+.nav-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+}
+
+.nav-links a:hover {
+  color: #38bdf8;
+}
+
+/* HOME */
+.home-section {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.home-section h2 {
+  font-size: 42px;
+}
+
+.home-section p {
+  max-width: 600px;
+  margin: auto;
+  opacity: 0.85;
+}
+
+.primary-btn {
+  display: inline-block;
+  margin-top: 25px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #38bdf8, #22d3ee);
+  color: #020617;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* DASHBOARD */
+.dashboard {
+  max-width: 1100px;
+  margin: auto;
+  padding: 30px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.query-section {
+  display: flex;
+  gap: 10px;
+}
+
+.query-section input {
+  flex: 1;
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+}
+
+.query-section button {
+  padding: 14px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #22d3ee;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.quick-filters {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.quick-filters button {
+  padding: 10px 16px;
+  background: #1e293b;
+  color: #e5e7eb;
+  border-radius: 20px;
+  border: 1px solid #334155;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #020617;
+  border-radius: 12px;
+}
+
+th, td {
+  padding: 14px;
+  border-bottom: 1px solid #1e293b;
+  text-align: center;
+}
+
+th {
+  color: #38bdf8;
+}
+
+.reason-box {
+  margin-bottom: 15px;
+  padding: 15px;
+  border-left: 4px solid #38bdf8;
+  background: #020617;
+}
+
+.charts {
+  margin-top: 40px;
+}
+
+canvas {
+  background: #020617;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+/* CONTACT */
+.contact-section {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.contact-card {
+  max-width: 400px;
+  margin: auto;
+  padding: 20px;
+  background: #020617;
+  border-radius: 12px;
+}
