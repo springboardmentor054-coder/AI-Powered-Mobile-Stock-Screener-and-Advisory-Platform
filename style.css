@@ -1,0 +1,102 @@
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: #f4f7fb;
+  color: #333;
+}
+
+/* Navbar */
+.navbar {
+  background: linear-gradient(90deg, #1f3c88, #3a6fd8);
+  color: white;
+  padding: 20px;
+}
+
+.navbar h1 {
+  margin: 0;
+}
+
+.tagline {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Main container */
+.container {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 0 15px;
+}
+
+/* Card */
+.card {
+  background: white;
+  padding: 25px;
+  margin-bottom: 25px;
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+/* Input */
+input {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
+/* Button */
+button {
+  margin-top: 15px;
+  padding: 14px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background-color: #1f3c88;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #162e66;
+}
+
+/* Results */
+.results {
+  margin-top: 15px;
+}
+
+.stock-card {
+  border: 1px solid #e0e0e0;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stock-name {
+  font-weight: bold;
+}
+
+.stock-meta {
+  font-size: 13px;
+  color: #666;
+}
+
+.placeholder {
+  color: #888;
+  font-style: italic;
+}
