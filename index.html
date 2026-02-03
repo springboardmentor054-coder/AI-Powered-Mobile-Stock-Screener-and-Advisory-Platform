@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Stock Screener</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <h1>AI Stock Screener</h1>
+    <span class="tagline">Smart investing with AI insights</span>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container">
+
+    <!-- Query Card -->
+    <div class="card">
+      <h2>Ask Your Stock Query</h2>
+      <p class="subtext">
+        Type your stock screening condition in simple English.
+      </p>
+
+      <input
+        type="text"
+        id="query"
+        placeholder="e.g. Show IT stocks with PE less than 10"
+      />
+
+      <button onclick="searchStocks()">Run Screener</button>
+    </div>
+
+    <!-- Results Card -->
+    <div class="card">
+      <h2>Screener Results</h2>
+      <div id="results" class="results">
+        <p class="placeholder">No results yet. Run a screener query.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
