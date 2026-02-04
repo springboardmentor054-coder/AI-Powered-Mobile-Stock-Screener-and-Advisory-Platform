@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import QueryDashboard from './pages/QueryDashboard';
 import VerifyEmail from './pages/VerifyEmail';
+import Dashboard from './pages/Dashboard';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -34,7 +35,15 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+
           {/* Default redirect */}
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>

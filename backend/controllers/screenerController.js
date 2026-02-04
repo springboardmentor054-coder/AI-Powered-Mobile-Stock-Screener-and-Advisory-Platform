@@ -1,35 +1,78 @@
-const db = require('../config/db'); // Import your DB connection
+const db = require('../config/db');
+const redis = require('../config/redis'); 
 const { processUserQuery } = require('../utils/aiHandler');
-const { compileToSQL } = require('../utils/sqlCompiler'); // Import the compiler
+const { compileToSQL } = require('../utils/sqlCompiler');
+const { trackSearch } = require('./userController');
 
 exports.handleUserQuery = async (req, res) => {
   try {
     const { query } = req.body;
-    console.log('1. Received user query:', query);
+    const userId = req.user ? req.user.id : null;
 
-    // --- Step A: Get DSL from AI ---
+    if (!query) return res.status(400).json({ error: "Query is required" });
+
+    // DEBUG 1: Log the generated key
+    const cacheKey = `query_cache:${query.trim().toLowerCase()}`;
+    console.log(`🔑 Checking Cache Key: "${cacheKey}"`);
+
+    // ---------------------------------------------------------
+    // A. CHECK REDIS CACHE
+    // ---------------------------------------------------------
+    let cachedResult = null;
+    try {
+      cachedResult = await redis.get(cacheKey);
+    } catch (redisErr) {
+      console.error("⚠️ Redis GET failed:", redisErr.message);
+    }
+
+    if (cachedResult) {
+      console.log('⚡ HIT: Serving result from Redis Cache');
+      
+      if (userId) trackSearch(userId, query).catch(e => console.error(e));
+      
+      return res.json(JSON.parse(cachedResult));
+    }
+
+    console.log('🐢 MISS: Fetching from AI & Database...');
+
+    // ---------------------------------------------------------
+    // B. PROCESS QUERY
+    // ---------------------------------------------------------
     const dsl = await processUserQuery(query);
-    console.log('2. Generated DSL:', JSON.stringify(dsl, null, 2));
-
-    // --- Step B: Compile DSL to SQL ---
     const sqlQuery = compileToSQL(dsl);
-    console.log('3. Generated SQL:', sqlQuery.text);
-    console.log('4. SQL Params:', sqlQuery.values);
-
-    // --- Step C: Execute in Database ---
     const result = await db.query(sqlQuery.text, sqlQuery.values);
 
-    // --- Step D: Send Results ---
-    res.json({
+    const responseData = {
       message: 'Query executed successfully!',
-      dsl: dsl,           // Send back for debugging
-      sql: sqlQuery.text, // Optional: show user the SQL
+      dsl: dsl,           
+      sql: sqlQuery.text, 
       count: result.rows.length,
-      data: result.rows   // The actual stock data
-    });
+      data: result.rows   
+    };
+
+    // ---------------------------------------------------------
+    // C. SAVE TO REDIS
+    // ---------------------------------------------------------
+    try {
+      console.log(`💾 Saving to Redis Key: "${cacheKey}"`);
+      
+      // Using 'set' with options is the modern v4 way, but setEx works too.
+      // Let's explicitly wait for it.
+      await redis.set(cacheKey, JSON.stringify(responseData), {
+        EX: 3600 // Expires in 1 hour
+      });
+      
+      console.log('✅ Successfully saved to Redis!');
+    } catch (saveErr) {
+      console.error("❌ Redis SAVE failed:", saveErr.message);
+    }
+
+    if (userId) trackSearch(userId, query).catch(e => console.error(e));
+
+    res.json(responseData);
 
   } catch (err) {
-    console.error('Screener Controller Error:', err.message);
+    console.error('❌ Screener Controller Error:', err.message);
     res.status(500).json({ error: 'Failed to process query' });
   }
 };
