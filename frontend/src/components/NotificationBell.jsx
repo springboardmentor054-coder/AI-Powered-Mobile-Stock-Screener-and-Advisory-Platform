@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Clock, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Bell, TrendingUp, AlertTriangle, Trash2, Check, CheckCircle2 } from 'lucide-react';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
@@ -8,14 +9,14 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Fetch Logic
+  // 1. Fetch on Mount
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Close on Click Outside
+  // 2. Click Outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -35,15 +36,44 @@ export default function NotificationBell() {
     } catch (err) { console.error(err); }
   };
 
-  const markAsRead = async (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+  // --- MARK AS READ (DB + UI) ---
+  const markAsRead = async (e, id) => {
+    e.stopPropagation(); // Prevent bubbling if you click the container
+    try {
+      // 1. Optimistic Update (Instant UI change)
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+
+      // 2. Database Update
+      await api.put(`/alerts/notifications/${id}/read`);
+    } catch (err) {
+      console.error("Failed to mark read");
+    }
+  };
+
+  // --- DELETE (DB + UI) ---
+  const deleteNotification = async (e, id) => {
+    e.stopPropagation();
+    try {
+      // 1. Optimistic Update (Remove from list immediately)
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      
+      // Recalculate count if we deleted an unread one
+      const wasUnread = notifications.find(n => n.id === id && !n.is_read);
+      if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+
+      // 2. Database Update
+      await api.delete(`/alerts/notifications/${id}`);
+      toast.success("Notification removed");
+    } catch (err) {
+      toast.error("Failed to delete");
+    }
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
       
-      {/* Trigger Button */}
+      {/* TRIGGER BUTTON */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={`relative p-2 rounded-full transition-all active:scale-90 ${
@@ -59,7 +89,7 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown Panel */}
+      {/* DROPDOWN */}
       {isOpen && (
         <div className="absolute right-0 mt-4 w-[90vw] sm:w-[400px] max-w-[400px] bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 z-50 animate-in fade-in slide-in-from-top-2 origin-top-right overflow-hidden ring-1 ring-black/5">
           
@@ -80,39 +110,63 @@ export default function NotificationBell() {
                 {notifications.map((note) => (
                   <div 
                     key={note.id} 
-                    onClick={() => markAsRead(note.id)}
-                    className={`p-3 rounded-2xl flex gap-3 transition-all cursor-pointer group ${
+                    className={`relative p-3 rounded-2xl flex gap-3 transition-all group ${
                       !note.is_read ? 'bg-blue-50/50 hover:bg-blue-100/50' : 'hover:bg-gray-100/50'
                     }`}
                   >
                     {/* Icon Box */}
-                    <div className={`mt-1 w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                      !note.is_read ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-gray-100 text-gray-400'
+                    <div className={`mt-1 w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                      !note.is_read ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-gray-200 text-gray-400'
                     }`}>
                        {note.title.includes('Price') ? <TrendingUp className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
                     </div>
 
-                    <div className="flex-1 min-w-0">
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 pr-16"> {/* pr-16 leaves space for buttons */}
                       <div className="flex justify-between items-start">
-                         <p className={`text-sm truncate pr-2 ${!note.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-600'}`}>
+                         <p className={`text-sm truncate ${!note.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-600'}`}>
                            {note.title}
                          </p>
-                         <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                           {new Date(note.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                         </span>
                       </div>
-                      
                       <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mt-0.5">
                         {note.message}
                       </p>
+                      <span className="text-[10px] text-gray-400 mt-1 block">
+                         {new Date(note.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
                     </div>
+
+                    {/* ACTION BUTTONS (Appear on Hover / Always visible on Mobile) */}
+                    <div className="absolute right-2 top-2 bottom-2 flex flex-col justify-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-gradient-to-l from-transparent to-transparent pl-2">
+                      
+                      {/* Mark Read Button (Only if unread) */}
+                      {!note.is_read && (
+                        <button 
+                          onClick={(e) => markAsRead(e, note.id)}
+                          className="p-1.5 bg-white text-blue-600 rounded-full shadow-sm hover:bg-blue-600 hover:text-white transition"
+                          title="Mark as Read"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {/* Delete Button */}
+                      <button 
+                        onClick={(e) => deleteNotification(e, note.id)}
+                        className="p-1.5 bg-white text-gray-400 rounded-full shadow-sm hover:bg-red-500 hover:text-white transition"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
                   </div>
                 ))}
               </div>
             ) : (
               <div className="py-12 flex flex-col items-center justify-center text-gray-400">
                 <CheckCircle2 className="w-12 h-12 mb-3 opacity-20" />
-                <p className="text-sm font-medium">All caught up</p>
+                <p className="text-sm font-medium">No new alerts</p>
               </div>
             )}
           </div>

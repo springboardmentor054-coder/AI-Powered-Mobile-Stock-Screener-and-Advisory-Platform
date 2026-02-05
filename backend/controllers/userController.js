@@ -2,11 +2,9 @@ const db = require('../config/db');
 const redis = require('../config/redis');
 
 // 1. Get Dashboard (Watchlist + Redis History)
-exports.getDashboard = async (req, res) => {
+exports.getWatchlist = async (req, res) => {
   try {
     const userId = req.user.id; 
-
-    // A. Watchlist (DB)
     const watchlistQuery = `
       SELECT c.ticker_symbol, c.company_name, c.sector,
              pm.current_price, pm.price_change_percent, pm.fifty_two_week_high
@@ -17,18 +15,25 @@ exports.getDashboard = async (req, res) => {
       ORDER BY w.created_at DESC
     `;
     const watchlist = await db.query(watchlistQuery, [userId]);
-
-    // B. History (Redis) - Get last 10 items (SUPER FAST)
-    // We still read from Redis for the dashboard because it's instant
-    const recentQueries = await redis.lRange(`history:${userId}`, 0, 9);
-
-    res.json({
-      watchlist: watchlist.rows,
-      recentQueries: recentQueries
-    });
+    res.json(watchlist.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server Error" });
+  }
+};
+
+exports.getRecentQueries = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const historyKey = `history:${userId}`;
+    
+    // Fetch top 10 recent searches from Redis
+    const recentQueries = await redis.lRange(historyKey, 0, 9);
+    
+    res.json(recentQueries || []);
+  } catch (err) {
+    console.error("Redis Error:", err);
+    res.status(500).json({ error: "Failed to fetch queries" });
   }
 };
 
@@ -90,3 +95,27 @@ exports.trackSearch = async (userId, queryText) => {
     console.error("Tracking Error:", err);
   }
 };
+
+// ... existing imports
+
+exports.getSearchStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // UPDATED QUERY: Group by exact date (YYYY-MM-DD)
+    const query = `
+      SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date_group, COUNT(*) as count 
+      FROM search_history 
+      WHERE user_id = $1 AND created_at > NOW() - INTERVAL '7 days'
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+    
+    const result = await db.query(query, [userId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Stats Error:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+};
+

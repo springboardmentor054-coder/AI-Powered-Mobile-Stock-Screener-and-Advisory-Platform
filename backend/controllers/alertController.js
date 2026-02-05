@@ -51,3 +51,112 @@ exports.getNotifications = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+exports.markNotificationRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Security: Ensure the notification belongs to this user
+    await db.query(
+      `UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to mark as read" });
+  }
+};
+
+// 2. Delete Notification
+exports.deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    await db.query(
+      `DELETE FROM notifications WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete notification" });
+  }
+};
+
+exports.getAlertsForStock = async (req, res) => {
+  try {
+    const { ticker } = req.params;
+    const userId = req.user.id;
+
+    const query = `
+      SELECT a.* FROM stock_alerts a
+      JOIN companies c ON a.company_id = c.id
+      WHERE a.user_id = $1 AND c.ticker_symbol = $2
+      ORDER BY a.created_at DESC
+    `;
+    const result = await db.query(query, [userId, ticker]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch alerts" });
+  }
+};
+
+// 2. Reactivate an Alert
+exports.reactivateAlert = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+
+    await db.query(
+      `UPDATE stock_alerts SET status = 'ACTIVE' WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    console.log(`✅ Alert Reactivated: ID ${id}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to reactivate" });
+  }
+};
+
+// 3. Delete an Alert Rule
+exports.deleteAlert = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    await db.query(
+      `DELETE FROM stock_alerts WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete" });
+  }
+};
+
+exports.getAllUserAlerts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Join with companies to get the ticker symbol
+    const query = `
+      SELECT a.id, a.metric_column, a.operator, a.threshold_value, a.status, c.ticker_symbol 
+      FROM stock_alerts a
+      JOIN companies c ON a.company_id = c.id
+      WHERE a.user_id = $1
+      ORDER BY a.created_at DESC
+    `;
+
+    
+    const result = await db.query(query, [userId]);
+    console.log(`✅ Fetched ${result.rows.length} alerts for user ${userId}`);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch alerts" });
+  }
+};
