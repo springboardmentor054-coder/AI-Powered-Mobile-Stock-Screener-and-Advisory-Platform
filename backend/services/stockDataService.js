@@ -440,6 +440,164 @@ function calculateDebtToFcfRatio(totalDebt, freeCashFlow) {
   return totalDebt / freeCashFlow;
 }
 
+/**
+ * Insert historical price data (batch insert for efficiency)
+ */
+async function batchInsertPriceHistory(priceDataArray) {
+  if (!priceDataArray || priceDataArray.length === 0) {
+    return { inserted: 0, updated: 0 };
+  }
+
+  try {
+    let inserted = 0;
+    let updated = 0;
+
+    // Use transaction for batch insert
+    await db.query('BEGIN');
+
+    for (const priceData of priceDataArray) {
+      const {
+        symbol,
+        date,
+        open,
+        high,
+        low,
+        close,
+        volume,
+        adjustedClose
+      } = priceData;
+
+      const query = `
+        INSERT INTO price_history (
+          symbol, date, open, high, low, close, volume, adjusted_close
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (symbol, date)
+        DO UPDATE SET
+          open = EXCLUDED.open,
+          high = EXCLUDED.high,
+          low = EXCLUDED.low,
+          close = EXCLUDED.close,
+          volume = EXCLUDED.volume,
+          adjusted_close = EXCLUDED.adjusted_close
+        RETURNING (xmax = 0) AS inserted;
+      `;
+
+      const result = await db.query(query, [
+        symbol,
+        date,
+        open,
+        high,
+        low,
+        close,
+        volume,
+        adjustedClose
+      ]);
+
+      if (result.rows[0].inserted) {
+        inserted++;
+      } else {
+        updated++;
+      }
+    }
+
+    await db.query('COMMIT');
+    return { inserted, updated };
+
+  } catch (error) {
+    await db.query('ROLLBACK');
+    console.error('Error batch inserting price history:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get historical prices for a symbol within a date range
+ */
+async function getPriceHistory(symbol, startDate, endDate) {
+  const query = `
+    SELECT 
+      symbol,
+      date,
+      open,
+      high,
+      low,
+      close,
+      volume,
+      adjusted_close
+    FROM price_history
+    WHERE symbol = $1
+      AND date >= $2
+      AND date <= $3
+    ORDER BY date DESC;
+  `;
+
+  try {
+    const result = await db.query(query, [symbol, startDate, endDate]);
+    return result.rows;
+  } catch (error) {
+    console.error(`Error fetching price history for ${symbol}:`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get the most recent price data for a symbol
+ */
+async function getLatestPrice(symbol) {
+  const query = `
+    SELECT *
+    FROM price_history
+    WHERE symbol = $1
+    ORDER BY date DESC
+    LIMIT 1;
+  `;
+
+  try {
+    const result = await db.query(query, [symbol]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error(`Error fetching latest price for ${symbol}:`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get price change statistics
+ */
+async function getPriceChangeStats(symbol, days = 30) {
+  const query = `
+    WITH recent_prices AS (
+      SELECT close, date
+      FROM price_history
+      WHERE symbol = $1
+      ORDER BY date DESC
+      LIMIT $2
+    )
+    SELECT 
+      MAX(close) as high,
+      MIN(close) as low,
+      (SELECT close FROM recent_prices ORDER BY date DESC LIMIT 1) as current_price,
+      (SELECT close FROM recent_prices ORDER BY date ASC LIMIT 1) as start_price
+    FROM recent_prices;
+  `;
+
+  try {
+    const result = await db.query(query, [symbol, days]);
+    const stats = result.rows[0];
+    
+    if (stats && stats.current_price && stats.start_price) {
+      stats.change = stats.current_price - stats.start_price;
+      stats.change_percent = ((stats.change / stats.start_price) * 100).toFixed(2);
+    }
+    
+    return stats;
+  } catch (error) {
+    console.error(`Error calculating price stats for ${symbol}:`, error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   upsertStock,
   upsertFundamentals,
@@ -451,5 +609,9 @@ module.exports = {
   getStocksBySector,
   getStockComplete,
   calculateYoyGrowth,
-  calculateDebtToFcfRatio
+  calculateDebtToFcfRatio,
+  batchInsertPriceHistory,
+  getPriceHistory,
+  getLatestPrice,
+  getPriceChangeStats
 };

@@ -14,7 +14,7 @@ class AuthService {
     required String name,
   }) async {
     try {
-      final response = await ApiService.post('/auth/signup', {
+      final response = await ApiService.post('/api/auth/signup', {
         'email': email,
         'password': password,
         'name': name,
@@ -40,7 +40,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      final response = await ApiService.post('/auth/login', {
+      final response = await ApiService.post('/api/auth/login', {
         'email': email,
         'password': password,
       });
@@ -98,7 +98,7 @@ class AuthService {
         throw Exception('Not authenticated');
       }
 
-      final response = await ApiService.get('/user/profile', token: token);
+      final response = await ApiService.get('/api/user/profile', token: token);
       return response;
     } catch (e) {
       rethrow;

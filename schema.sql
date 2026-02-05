@@ -188,3 +188,64 @@ CREATE TABLE shareholding (
     major_shareholders_count INTEGER,
     top_10_shareholders_percentage FLOAT,    PRIMARY KEY (symbol)
 );
+
+/* Historical Price Data Table
+This table stores daily OHLCV (Open, High, Low, Close, Volume) data
+for tracking price movements and technical analysis */
+
+
+CREATE TABLE price_history (
+    symbol VARCHAR(10) REFERENCES stocks(symbol) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    open FLOAT,
+    high FLOAT,
+    low FLOAT,
+    close FLOAT,
+    volume BIGINT,
+    adjusted_close FLOAT,
+    PRIMARY KEY (symbol, date)
+);
+
+/* Create index for efficient date range queries */
+CREATE INDEX idx_price_history_symbol_date ON price_history(symbol, date DESC);
+CREATE INDEX idx_price_history_date ON price_history(date DESC);
+
+/* Wishlist History Table
+This table stores daily snapshots of wishlisted stocks to track changes over time.
+Users can see how their wishlisted stocks changed from previous days. */
+
+CREATE TABLE wishlist_history (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    symbol VARCHAR(10) NOT NULL REFERENCES stocks(symbol) ON DELETE CASCADE,
+    snapshot_date DATE NOT NULL,
+    
+    -- Price data
+    current_price FLOAT,
+    open_price FLOAT,
+    high_price FLOAT,
+    low_price FLOAT,
+    volume BIGINT,
+    
+    -- Fundamental data
+    pe_ratio FLOAT,
+    pb_ratio FLOAT,
+    eps FLOAT,
+    dividend_yield FLOAT,
+    market_cap BIGINT,
+    
+    -- Change metrics (calculated vs previous day)
+    price_change FLOAT,
+    price_change_percentage FLOAT,
+    volume_change_percentage FLOAT,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(user_id, symbol, snapshot_date)
+);
+
+-- Indexes for faster queries
+CREATE INDEX idx_wishlist_history_user_symbol ON wishlist_history(user_id, symbol);
+CREATE INDEX idx_wishlist_history_date ON wishlist_history(snapshot_date DESC);
+CREATE INDEX idx_wishlist_history_user_date ON wishlist_history(user_id, snapshot_date DESC);
+

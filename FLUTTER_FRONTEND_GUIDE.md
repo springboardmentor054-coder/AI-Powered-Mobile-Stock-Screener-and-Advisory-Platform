@@ -53,11 +53,7 @@ A complete Flutter mobile app with authentication integrated with your backend.
 ### Step 1: Make Sure Backend is Running
 ```powershell
 cd backend
-pm2 status
-```
-If not running:
-```powershell
-pm2 start ecosystem.config.js
+npm start
 ```
 
 ### Step 2: Configure API URL
@@ -193,7 +189,7 @@ await authService.logout();
 
 ### Issue 1: "Connection refused" or "Network error"
 **Solution:**
-- Make sure backend is running (`pm2 status`)
+- Make sure backend is running (check terminal where you ran `npm start`)
 - Check the API URL in `api_service.dart`
   - Android Emulator: `http://10.0.2.2:5000`
   - iOS Simulator: `http://localhost:5000`

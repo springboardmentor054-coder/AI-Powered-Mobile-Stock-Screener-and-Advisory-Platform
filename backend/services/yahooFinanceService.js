@@ -28,9 +28,17 @@ async function getEarningsData(symbol) {
     const earningsHistory = result.earningsHistory?.history || [];
 
     // Get next earnings date
-    const earningsDate = calendarEvents.earnings?.earningsDate?.[0]
-      ? new Date(calendarEvents.earnings.earningsDate[0] * 1000)
-      : null;
+    // Yahoo Finance sometimes returns invalid future dates (year 58000+), so we validate
+    let earningsDate = null;
+    if (calendarEvents.earnings?.earningsDate?.[0]) {
+      const date = new Date(calendarEvents.earnings.earningsDate[0] * 1000);
+      // Only accept dates within reasonable range (next 2 years)
+      const twoYearsFromNow = new Date();
+      twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
+      if (date < twoYearsFromNow) {
+        earningsDate = date;
+      }
+    }
 
     // Get current quarter estimate
     const currentQuarter = earningsTrend.find(t => t.period === '0q') || earningsTrend[0];
@@ -497,6 +505,151 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Get historical price data for a stock
+ * @param {string} symbol - Stock symbol (e.g., 'RELIANCE.NS')
+ * @param {string} period1 - Start date (YYYY-MM-DD)
+ * @param {string} period2 - End date (YYYY-MM-DD)
+ * @returns {Array} Array of daily price data
+ */
+async function getHistoricalPrices(symbol, period1, period2) {
+  try {
+    console.log(`Fetching historical data for ${symbol} from ${period1} to ${period2}...`);
+    
+    const result = await yahooFinance.historical(symbol, {
+      period1,
+      period2,
+      interval: '1d' // daily data
+    });
+
+    if (!result || result.length === 0) {
+      console.log(`No historical data available for ${symbol}`);
+      return [];
+    }
+
+    console.log(`✓ Fetched ${result.length} days of historical data for ${symbol}`);
+
+    // Format the data
+    return result.map(day => ({
+      symbol: symbol.replace('.NS', '').replace('.BO', ''),
+      date: day.date,
+      open: day.open,
+      high: day.high,
+      low: day.low,
+      close: day.close,
+      volume: day.volume,
+      adjustedClose: day.adjClose || day.close
+    }));
+
+  } catch (error) {
+    console.error(`Error fetching historical data for ${symbol}:`, error.message);
+    return [];
+  }
+}
+
+/**
+ * Get recent historical data (last N days)
+ * @param {string} symbol - Stock symbol
+ * @param {number} days - Number of days to fetch (default 30)
+ */
+async function getRecentHistory(symbol, days = 30) {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const period1 = startDate.toISOString().split('T')[0];
+  const period2 = endDate.toISOString().split('T')[0];
+
+  return getHistoricalPrices(symbol, period1, period2);
+}
+
+/**
+ * Convert quarter string (e.g., "1Q2025", "4Q2024") to date (e.g., "2025-01-01", "2024-10-01")
+ */
+function quarterStringToDate(quarterStr) {
+  if (!quarterStr || typeof quarterStr !== 'string') return null;
+  
+  // Match patterns like "1Q2025", "4Q2024", etc.
+  const match = quarterStr.match(/^(\d)Q(\d{4})$/);
+  if (!match) return quarterStr; // Return as-is if not a quarter format
+  
+  const quarter = parseInt(match[1]);
+  const year = match[2];
+  
+  // Map quarter to month (quarter start dates)
+  const quarterToMonth = {
+    1: '01', // Q1 starts in January
+    2: '04', // Q2 starts in April
+    3: '07', // Q3 starts in July
+    4: '10'  // Q4 starts in October
+  };
+  
+  const month = quarterToMonth[quarter];
+  if (!month) return null;
+  
+  return `${year}-${month}-01`;
+}
+
+/**
+ * Get quarterly financial statements data
+ * Returns: quarterly income statements with revenue, net income, gross profit, etc.
+ * Uses the quoteSummary API with financialData module
+ */
+async function getQuarterlyFinancials(symbol) {
+  try {
+    console.log(`  Fetching quarterly financials for ${symbol}...`);
+    
+    // Try to get financial data from quoteSummary
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: ['financialData', 'defaultKeyStatistics', 'earnings']
+    });
+
+    const financialData = result.financialData || {};
+    const earnings = result.earnings || {};
+    const quarterlyEarnings = earnings.financialsChart?.quarterly || [];
+
+    if (quarterlyEarnings.length === 0) {
+      console.log(`  ⚠️  No quarterly financial data available for ${symbol}`);
+      return [];
+    }
+
+    // Process the quarterly earnings data
+    const financials = quarterlyEarnings.map(quarter => {
+      const revenue = quarter.revenue?.raw || null;
+      const earnings = quarter.earnings?.raw || null;
+      
+      // Convert quarter string to proper date format
+      const quarterDate = quarterStringToDate(quarter.date);
+      
+      // We can't get all metrics from this API, so we'll populate what we can
+      return {
+        quarter: quarterDate || quarter.date,
+        revenue: revenue,
+        net_income: earnings,
+        gross_profit: null, // Not available in this module
+        operating_income: null, // Not available in this module
+        ebitda: null, // Not available in this module
+        eps: earnings, // Using earnings as a proxy for EPS
+        gross_margin: null,
+        operating_margin: null,
+        net_margin: (earnings && revenue && revenue !== 0) 
+          ? (earnings / revenue) * 100 
+          : null
+      };
+    });
+
+    // Sort by date descending (most recent first)
+    financials.sort((a, b) => new Date(b.quarter) - new Date(a.quarter));
+
+    console.log(`  ✓ Found ${financials.length} quarters of financial data`);
+    return financials;
+
+  } catch (error) {
+    console.error(`  ❌ Error fetching quarterly financials for ${symbol}:`, error.message);
+    return [];
+  }
+}
+
 module.exports = {
   getEarningsData,
   getAnalystData,
@@ -506,5 +659,8 @@ module.exports = {
   getFundamentals,
   getShareholdingData,
   getStockInfo,
+  getHistoricalPrices,
+  getRecentHistory,
+  getQuarterlyFinancials,
   delay
 };

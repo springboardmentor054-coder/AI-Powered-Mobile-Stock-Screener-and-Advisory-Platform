@@ -6,7 +6,8 @@ class ApiService {
   // For Android Emulator: use 10.0.2.2 instead of localhost
   // For iOS Simulator: use localhost
   // For physical device: use your computer's IP address
-  static const String baseUrl = 'http://10.1.84.165:5000';
+  // For Chrome web: use localhost (127.0.0.1 may have CORS issues)
+  static const String baseUrl = 'http://localhost:5000';
   
   // Helper method to make GET requests
   static Future<dynamic> get(String endpoint, {String? token}) async {

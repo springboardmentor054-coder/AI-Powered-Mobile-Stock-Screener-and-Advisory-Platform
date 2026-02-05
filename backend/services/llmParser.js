@@ -28,7 +28,9 @@ const VALID_FIELDS = [
   // Earnings table
   'earnings_date', 'estimated_eps', 'expected_revenue', 'beat_probability',
   'analyst_target_price_low', 'analyst_target_price_high', 'current_price',
-  'analyst_count', 'consensus_rating'
+  'analyst_count', 'consensus_rating',
+  // Quarterly financials (for time-based queries)
+  'quarter', 'company_id'
 ];
 
 const VALID_OPERATORS = ['<', '>', '<=', '>=', '=', '!='];
@@ -40,23 +42,53 @@ const VALID_SECTORS = ['Technology', 'IT', 'Financials', 'Healthcare', 'Consumer
 const SYSTEM_PROMPT = `You are a stock screener query parser. Convert natural language queries into a structured DSL format.
 
 Database Schema:
-- stocks: symbol, company_name, sector (${VALID_SECTORS.join(', ')}), industry, market_cap, employees
+- stocks: symbol, company_name, sector (${VALID_SECTORS.join(', ')}), industry, market_cap, employees, company_id
 - fundamentals: pe_ratio, peg_ratio, pb_ratio, ps_ratio, dividend_yield, beta, eps, profit_margin, operating_margin, return_on_equity, return_on_assets, debt_to_equity_ratio, total_debt, free_cash_flow, debt_to_fcf_ratio
 - shareholding: promoter_holding_percentage, institutional_holding_percentage, public_holding_percentage
 - financials: revenue, ebitda, revenue_yoy_growth, ebitda_yoy_growth, gross_margin, net_margin
 - earnings_analyst_data: earnings_date, estimated_eps, beat_probability, analyst_target_price_low, analyst_target_price_high, analyst_count, consensus_rating
 - corporate_actions: action_type (stock_buyback, dividend, stock_split), announcement_date, amount
+- quarterly_financials: company_id, quarter (DATE), revenue, net_income, gross_profit, operating_income
 
 Valid operators: <, >, <=, >=, =, !=
 
 Output JSON format:
 {
   "sector": "string or null",
+  "symbol": "string or null",
+  "companyName": "string or null",
   "conditions": [
     {
       "field": "field_name",
       "operator": "< or > or = etc",
       "value": number or string
+    }
+  ],
+  "timeFilters": {
+    "quarterRange": {
+      "value": number,
+      "unit": "months or years or days"
+    },
+    "dateFrom": "YYYY-MM-DD",
+    "dateTo": "YYYY-MM-DD"
+  },
+  "groupBy": {
+    "fields": ["company_id"],
+    "aggregates": [
+      {
+        "function": "COUNT or MIN or MAX or AVG or SUM",
+        "field": "field_name",
+        "alias": "optional_alias"
+      }
+    ]
+  },
+  "having": [
+    {
+      "expression": "COUNT(*) or other aggregate",
+      "aggregate": "MIN or MAX or COUNT",
+      "field": "field_name",
+      "operator": "< or > or = etc",
+      "value": number
     }
   ],
   "specialFilters": {
@@ -68,30 +100,43 @@ Output JSON format:
 }
 
 Examples:
-Query: "IT companies with PEG ratio less than 1.5"
-Output: {"sector": "Technology", "conditions": [{"field": "peg_ratio", "operator": "<", "value": 1.5}], "specialFilters": {}}
 
-Query: "Companies with upcoming earnings in 30 days and likely to beat estimates"
-Output: {"sector": null, "conditions": [{"field": "beat_probability", "operator": ">", "value": 60}], "specialFilters": {"hasUpcomingEarnings": true, "earningsWithinDays": 30}}
+Query: "show the financial services stock named Aflac Incorporated with symbol AFL"
+Output: {"sector": "Financial Services", "symbol": "AFL", "companyName": "Aflac", "conditions": [], "specialFilters": {}}
+
+Query: "show stock with symbol AAPL"
+Output: {"sector": null, "symbol": "AAPL", "companyName": null, "conditions": [], "specialFilters": {}}
+
+Query: "show all stocks"
+Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "specialFilters": {}}
+
+Query: "IT companies with PEG ratio less than 1.5"
+Output: {"sector": "Technology", "symbol": null, "companyName": null, "conditions": [{"field": "peg_ratio", "operator": "<", "value": 1.5}], "specialFilters": {}}
+
+Query: "Companies with 4 consecutive profitable quarters in the last 12 months"
+Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "timeFilters": {"quarterRange": {"value": 12, "unit": "months"}}, "groupBy": {"fields": ["company_id"], "aggregates": [{"function": "MIN", "field": "revenue", "alias": "min_revenue"}]}, "having": [{"expression": "COUNT(*)", "operator": "=", "value": 4}, {"aggregate": "MIN", "field": "revenue", "operator": ">", "value": 0}], "specialFilters": {}}
+
+Query: "Companies reporting revenue growth in every quarter of the past year"
+Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "timeFilters": {"quarterRange": {"value": 12, "unit": "months"}}, "groupBy": {"fields": ["company_id"], "aggregates": [{"function": "MIN", "field": "revenue", "alias": "min_revenue"}]}, "having": [{"aggregate": "MIN", "field": "revenue", "operator": ">", "value": 0}, {"expression": "COUNT(*)", "operator": ">=", "value": 4}], "specialFilters": {}}
 
 Query: "Financial stocks with PE ratio below 15 and promoter holding above 50%"
-Output: {"sector": "Financials", "conditions": [{"field": "pe_ratio", "operator": "<", "value": 15}, {"field": "promoter_holding_percentage", "operator": ">", "value": 50}], "specialFilters": {}}
+Output: {"sector": "Financials", "symbol": null, "companyName": null, "conditions": [{"field": "pe_ratio", "operator": "<", "value": 15}, {"field": "promoter_holding_percentage", "operator": ">", "value": 50}], "specialFilters": {}}
 
 Query: "Companies that announced stock buybacks"
-Output: {"sector": null, "conditions": [], "specialFilters": {"hasStockBuyback": true}}
+Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "specialFilters": {"hasStockBuyback": true}}
 
 Query: "Healthcare stocks with promoter holding equal to 20%"
-Output: {"sector": "Healthcare", "conditions": [{"field": "promoter_holding_percentage", "operator": "=", "value": 20}], "specialFilters": {}}
-
-Query: "Stocks with dividend yield above 3.5%"
-Output: {"sector": null, "conditions": [{"field": "dividend_yield", "operator": ">", "value": 3.5}], "specialFilters": {}}
+Output: {"sector": "Healthcare", "symbol": null, "companyName": null, "conditions": [{"field": "promoter_holding_percentage", "operator": "=", "value": 20}], "specialFilters": {}}
 
 IMPORTANT: 
+- If query mentions a specific stock symbol, extract it into "symbol" field
+- If query mentions a specific company name, extract it into "companyName" field
 - Only use fields from the schema above
 - Always return valid JSON
 - Use "Technology" or "IT" for tech sector
 - **CRITICAL: For percentage fields (promoter_holding_percentage, institutional_holding_percentage, dividend_yield, profit_margin, etc.), use WHOLE NUMBERS: 50 means 50%, 20 means 20%, 100 means 100%. DO NOT convert to decimals.**
 - Return empty specialFilters object if no special filters needed`;
+
 
 /**
  * Validates the DSL structure

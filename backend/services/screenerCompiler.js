@@ -15,7 +15,10 @@ const FIELD_TO_TABLE = {
   // Stocks table
   'market_cap': 's', 'employees': 's', 'average_volume': 's',
   'shares_outstanding': 's', 'insider_ownership_percentage': 's',
-  'institutional_ownership_percentage': 's'
+  'institutional_ownership_percentage': 's',
+  // Quarterly financials table (for time-based queries)
+  'quarter': 'qf', 'revenue': 'qf', 'net_income': 'qf', 
+  'gross_profit': 'qf', 'operating_income': 'qf', 'company_id': 'qf'
 };
 
 // Fields that represent percentages (stored as decimals: 0.2 = 20%)
@@ -85,8 +88,37 @@ function compileDSLToSQL(dsl) {
       };
     }
 
+    // Check if this is a time-based query requiring GROUP BY
+    const needsQuarterlyJoin = dsl.timeFilters || dsl.groupBy || dsl.having;
+    
     // Base query with joins
-    let baseQuery = `
+    let baseQuery = '';
+    
+    if (needsQuarterlyJoin && dsl.groupBy) {
+      // Time-based query with grouping
+      baseQuery = `
+    SELECT 
+      s.symbol,
+      s.symbol as company_id,
+      s.company_name, 
+      s.sector,
+      COUNT(qf.quarter) as quarter_count`;
+      
+      // Add aggregate functions if specified in groupBy
+      if (dsl.groupBy.aggregates) {
+        dsl.groupBy.aggregates.forEach(agg => {
+          const tableAlias = FIELD_TO_TABLE[agg.field] || 'qf';
+          baseQuery += `,
+      ${agg.function.toUpperCase()}(${tableAlias}.${agg.field}) as ${agg.alias || (agg.function + '_' + agg.field)}`;
+        });
+      }
+      
+      baseQuery += `
+    FROM stocks s
+    INNER JOIN quarterly_financials qf ON s.symbol = qf.symbol`;
+    } else {
+      // Standard query without grouping
+      baseQuery = `
     SELECT 
       s.symbol, 
       s.company_name, 
@@ -110,16 +142,44 @@ function compileDSLToSQL(dsl) {
       ROUND(CAST(sh.promoter_holding_percentage AS numeric), 2) as promoter_holding
     FROM stocks s
     LEFT JOIN fundamentals f ON s.symbol = f.symbol
-    LEFT JOIN shareholding sh ON s.symbol = sh.symbol
-    WHERE s.is_active = TRUE
-  `;
+    LEFT JOIN shareholding sh ON s.symbol = sh.symbol`;
+    }
+    
+    baseQuery += `
+    WHERE s.is_active = TRUE`;
 
+    // Add time filters if present
+    if (dsl.timeFilters) {
+      if (dsl.timeFilters.quarterRange) {
+        const { value, unit } = dsl.timeFilters.quarterRange;
+        baseQuery += ` AND qf.quarter >= CURRENT_DATE - INTERVAL '${value} ${unit}'`;
+      }
+      if (dsl.timeFilters.dateFrom) {
+        baseQuery += ` AND qf.quarter >= '${dsl.timeFilters.dateFrom}'`;
+      }
+      if (dsl.timeFilters.dateTo) {
+        baseQuery += ` AND qf.quarter <= '${dsl.timeFilters.dateTo}'`;
+      }
+    }
+    
     // Add sector filter with mapping and case-insensitive matching
     if (dsl.sector && typeof dsl.sector === 'string') {
       // Map LLM sector to database sector
       const mappedSector = SECTOR_MAPPING[dsl.sector] || dsl.sector;
       const safeSector = mappedSector.replace(/'/g, "''").replace(/[;\\]/g, '');
       baseQuery += ` AND UPPER(s.sector) = UPPER('${safeSector}')`;
+    }
+
+    // Add symbol filter (exact match)
+    if (dsl.symbol && typeof dsl.symbol === 'string') {
+      const safeSymbol = dsl.symbol.replace(/'/g, "''").replace(/[;\\]/g, '');
+      baseQuery += ` AND UPPER(s.symbol) = UPPER('${safeSymbol}')`;
+    }
+
+    // Add company name filter (partial match)
+    if (dsl.companyName && typeof dsl.companyName === 'string') {
+      const safeName = dsl.companyName.replace(/'/g, "''").replace(/[;\\]/g, '').replace(/%/g, '');
+      baseQuery += ` AND s.company_name ILIKE '%${safeName}%'`;
     }
 
     // Add condition filters
@@ -151,12 +211,58 @@ function compileDSLToSQL(dsl) {
         baseQuery += ` AND ${tableAlias}.${cond.field} ${cond.operator} ${safeValue}`;
       }
     });
+    
+    // Add GROUP BY clause if present
+    if (dsl.groupBy && dsl.groupBy.fields) {
+      baseQuery += `\n    GROUP BY `;
+      const groupFields = dsl.groupBy.fields.map(field => {
+        const tableAlias = FIELD_TO_TABLE[field] || 's';
+        return `${tableAlias}.${field}`;
+      });
+      baseQuery += groupFields.join(', ');
+      
+      // Add non-aggregated SELECT fields to GROUP BY
+      if (needsQuarterlyJoin) {
+        baseQuery += `, s.symbol, s.company_name, s.sector`;
+      }
+    }
+    
+    // Add HAVING clause if present
+    if (dsl.having && Array.isArray(dsl.having)) {
+      baseQuery += `\n    HAVING `;
+      const havingConditions = dsl.having.map((cond, index) => {
+        const validOperators = ['<', '>', '<=', '>=', '=', '!='];
+        if (!validOperators.includes(cond.operator)) {
+          throw new Error(`Invalid operator in HAVING: ${cond.operator}`);
+        }
+        
+        // Handle aggregate functions in HAVING
+        let havingExpression;
+        if (cond.aggregate) {
+          const tableAlias = FIELD_TO_TABLE[cond.field] || 'qf';
+          havingExpression = `${cond.aggregate.toUpperCase()}(${tableAlias}.${cond.field})`;
+        } else if (cond.expression) {
+          // Direct expression like COUNT(*)
+          havingExpression = cond.expression;
+        } else {
+          havingExpression = cond.field;
+        }
+        
+        const safeValue = escapeSQLValue(cond.value);
+        return `${havingExpression} ${cond.operator} ${safeValue}`;
+      });
+      baseQuery += havingConditions.join(' AND ');
+    }
 
     // Add ordering
-    baseQuery += `\n    ORDER BY s.symbol ASC`;
+    if (dsl.groupBy) {
+      baseQuery += `\n    ORDER BY quarter_count DESC, s.symbol ASC`;
+    } else {
+      baseQuery += `\n    ORDER BY s.symbol ASC`;
+    }
 
-    // Add limit for safety
-    baseQuery += `\n    LIMIT 100`;
+    // Add limit for safety (increased to show all stocks)
+    baseQuery += `\n    LIMIT 500`;
 
     return {
       error: false,

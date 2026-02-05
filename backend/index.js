@@ -7,10 +7,26 @@ const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
 const stockRoutes = require("./routes/stocks");
 const screenerRoutes = require("./routes/screener");
+const wishlistRoutes = require("./routes/wishlist");
+const pricesRoutes = require("./routes/prices");
 
 const app = express();
-app.use(cors());
+
+// Enhanced CORS configuration for Flutter web
+app.use(cors({
+  origin: '*', // Allow all origins in development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK", message: "Backend is running" });
@@ -88,14 +104,17 @@ app.post("/api/admin/trigger-update", async (req, res) => {
   });
 });
 
-app.use("/auth", authRoutes);
-app.use("/user", userRoutes);
-app.use("/stocks", stockRoutes);
-app.use("/screener", screenerRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/stocks", stockRoutes);
+app.use("/api/screener", screenerRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/prices", pricesRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const HOST = '0.0.0.0'; // Listen on all network interfaces
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on http://${HOST}:${PORT}`);
   console.log(`Alpha Vantage API Key: ${process.env.ALPHA_VANTAGE_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
   console.log(`Database: ${process.env.DB_NAME || 'Not configured'}`);
   
