@@ -3,9 +3,11 @@ const app = require("./app");
 const pool = require("./database");
 
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0'; // Listen on all network interfaces
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`Access from network: http://192.168.1.2:${PORT}`);
 });
 
 // Graceful shutdown

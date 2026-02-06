@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/api_service.dart';
-import '../utils/colors.dart';
 import 'result_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,11 +18,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  final List<String> _exampleQueries = [
-    'Show IT stocks with PE below 25',
-    'Finance stocks with PE below 20',
-    'IT stocks with PE less than 30',
-    'Healthcare stocks with low debt to FCF',
+  final List<Map<String, dynamic>> _popularScreeners = [
+    {'title': 'IT stocks with PE below 25', 'icon': Icons.computer, 'color': Color(0xFF3B82F6)},
+    {'title': 'Finance stocks with PE below 20', 'icon': Icons.account_balance, 'color': Color(0xFF10B981)},
+    {'title': 'Healthcare low debt stocks', 'icon': Icons.local_hospital, 'color': Color(0xFFEF4444)},
+    {'title': 'High growth tech stocks', 'icon': Icons.trending_up, 'color': Color(0xFF8B5CF6)},
+  ];
+  
+  final List<String> _quickSearches = [
+    'Value Stocks',
+    'High PE Ratio',
+    'Low Debt',
+    'Tech Sector',
+    'Banking',
+    'Pharma',
   ];
 
   @override
@@ -42,21 +50,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _checkServerHealth() async {
+    print('🔄 Starting health check...');
     try {
-      final isHealthy = await ApiService.checkHealth();
+      final isHealthy = await ApiService().checkHealth();
+      print('📡 Health check result: $isHealthy');
       if (mounted) {
         setState(() {
           _isServerHealthy = isHealthy;
           if (!isHealthy) {
-            _errorMessage = '⚠️ Backend server is offline. Please start the server.';
+            _errorMessage = 'Backend server is offline. Please start the server.';
+          } else {
+            _errorMessage = null; // Clear error when healthy
           }
         });
       }
     } catch (e) {
+      print('⚠️ Health check exception: $e');
       if (mounted) {
         setState(() {
           _isServerHealthy = false;
-          _errorMessage = '⚠️ Cannot connect to backend server';
+          _errorMessage = 'Cannot connect to backend server: $e';
         });
       }
     }
@@ -85,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
 
     try {
-      final results = await ApiService.fetchStocks(query);
+      final results = await ApiService().fetchStocks(query);
 
       if (!mounted) return;
 
@@ -126,14 +139,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.primary,
-              AppColors.primaryLight,
-              AppColors.secondary,
+              Color(0xFF60A5FA),
+              Color(0xFF3B82F6),
+              Color(0xFF2563EB),
             ],
           ),
         ),
@@ -150,11 +163,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -189,40 +202,52 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ],
                         ),
                       ),
-                      // Server Status Indicator
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _isServerHealthy 
-                              ? Colors.green.withOpacity(0.2)
-                              : Colors.red.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _isServerHealthy ? Colors.green : Colors.red,
-                            width: 1.5,
+                      // Server Status Indicator (with tap to refresh)
+                      GestureDetector(
+                        onTap: () {
+                          print('🔄 Manual refresh triggered');
+                          _checkServerHealth();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _isServerHealthy
+                                ? Colors.green.withValues(alpha: 0.2)
+                                : Colors.red.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              width: 1.5,
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _isServerHealthy ? Colors.green : Colors.red,
-                                shape: BoxShape.circle,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _isServerHealthy ? 'Online' : 'Offline',
-                              style: TextStyle(
-                                color: _isServerHealthy ? Colors.green : Colors.red,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                              const SizedBox(width: 6),
+                              Text(
+                                _isServerHealthy ? 'Online' : 'Offline',
+                                style: TextStyle(
+                                  color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.refresh,
+                                size: 14,
+                                color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -246,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         children: [
                           // Search Section
                           Text(
-                            '🔍 Search Stocks',
+                            'Search Stocks',
                             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -371,18 +396,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
                           const SizedBox(height: 32),
 
-                          // Example Queries
-                          Text(
-                            '💡 Example Queries',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 16),
-                          ..._exampleQueries.map((query) => _buildExampleCard(query, colorScheme)),
-
-                          const SizedBox(height: 32),
-
                           // Features Section
                           _buildFeaturesSection(colorScheme),
                         ],
@@ -447,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '✨ Features',
+          'Features',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),

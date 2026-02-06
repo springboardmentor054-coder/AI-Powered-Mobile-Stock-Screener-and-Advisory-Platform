@@ -281,29 +281,34 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Row(
-                children: ['1D', '1W', '1M', '3M', '1Y'].map((period) {
-                  final isSelected = _selectedPeriod == period;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedPeriod = period),
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        period,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.white : AppColors.textSecondary,
+              Flexible(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['1D', '1W', '1M', '3M', '1Y'].map((period) {
+                      final isSelected = _selectedPeriod == period;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedPeriod = period),
+                        child: Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.primary : AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            period,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected ? Colors.white : AppColors.textSecondary,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
             ],
           ),
@@ -324,9 +329,17 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
       return const Center(child: Text('No chart data available'));
     }
 
+    // Helper to safely convert value to double
+    double safeToDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
     final spots = <FlSpot>[];
     for (int i = 0; i < _chartData.length; i++) {
-      spots.add(FlSpot(i.toDouble(), _chartData[i]['price'].toDouble()));
+      spots.add(FlSpot(i.toDouble(), safeToDouble(_chartData[i]['price'])));
     }
 
     final isPositive = widget.stock.isGainer;

@@ -1,16 +1,20 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../database");
+const marketDataService = require('../services/realTimeMarketData.service');
 
 /**
  * GET /stocks/:symbol/quote
- * Get real-time quote for a stock
+ * Get real-time quote for a stock from Yahoo Finance
  */
 router.get("/stocks/:symbol/quote", async (req, res) => {
   try {
     const { symbol } = req.params;
     
-    // Get stock data with simulated real-time pricing
+    // Fetch real-time data from Yahoo Finance
+    const realtimeData = await marketDataService.getRealtimeData(symbol);
+    
+    // Get fundamental data from database
     const result = await pool.query(
       `SELECT 
         c.symbol,
@@ -22,30 +26,21 @@ router.get("/stocks/:symbol/quote", async (req, res) => {
         f.debt_to_fcf,
         f.revenue_growth,
         f.market_cap,
-        f.eps,
-        -- Simulate current price (in production, fetch from real API)
-        (1000 + RANDOM() * 500)::decimal(10,2) as current_price,
-        (- 5 + RANDOM() * 10)::decimal(5,2) as change_percent,
-        (- 50 + RANDOM() * 100)::decimal(10,2) as change_amount,
-        (1000 + RANDOM() * 100)::decimal(10,2) as day_high,
-        (900 + RANDOM() * 100)::decimal(10,2) as day_low,
-        (1000000 + RANDOM() * 5000000)::bigint as volume
+        f.eps
       FROM companies c
       LEFT JOIN fundamentals f ON c.symbol = f.symbol
       WHERE c.symbol = $1`,
       [symbol.toUpperCase()]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Stock not found"
-      });
-    }
+    const stockData = result.rows.length > 0 ? result.rows[0] : {};
 
     res.json({
       success: true,
-      data: result.rows[0]
+      data: {
+        ...stockData,
+        ...realtimeData
+      }
     });
   } catch (err) {
     console.error("Error fetching stock quote:", err);
@@ -166,6 +161,89 @@ router.get("/stocks/:symbol/chart", async (req, res) => {
     res.status(500).json({
       success: false,
       error: err.message
+    });
+  }
+});
+
+/**
+ * GET /realtime/:symbol
+ * Get real-time data for a single stock from Yahoo Finance
+ */
+router.get('/realtime/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await marketDataService.getRealtimeData(symbol);
+    
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Real-time data error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch real-time data'
+    });
+  }
+});
+
+/**
+ * POST /realtime/bulk
+ * Get real-time data for multiple stocks
+ * Body: { symbols: ['TCS', 'INFY', 'HDFCBANK'] }
+ */
+router.post('/realtime/bulk', async (req, res) => {
+  try {
+    const { symbols } = req.body;
+    
+    if (!symbols || !Array.isArray(symbols)) {
+      return res.status(400).json({
+        success: false,
+        error: 'symbols array is required'
+      });
+    }
+
+    const data = await marketDataService.getBulkRealtimeData(symbols);
+    
+    res.json({
+      success: true,
+      count: data.length,
+      data: data
+    });
+  } catch (error) {
+    console.error('Bulk real-time data error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bulk real-time data'
+    });
+  }
+});
+
+/**
+ * GET /intraday/:symbol
+ * Get intraday chart data (5 days, 15min intervals)
+ */
+router.get('/intraday/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await marketDataService.getIntradayData(symbol);
+    
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Data not available'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Intraday data error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch intraday data'
     });
   }
 });

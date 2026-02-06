@@ -38,7 +38,7 @@ dependencies:
   # HTTP package for making API calls to the backend
   http: ^1.2.0
   
-  # Charts for stock visualization
+  # Premium Charts (TradingView-style)
   fl_chart: ^0.69.0
   
   # Shared preferences for local storage
@@ -50,7 +50,7 @@ dependencies:
   # Shimmer loading effect
   shimmer: ^3.0.0
   
-  # Intl for date formatting
+  # Internationalization & formatting
   intl: ^0.19.0
 
 dev_dependencies:

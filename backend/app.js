@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const healthMonitor = require("./services/healthMonitor.service");
+const backgroundEvaluator = require("./services/backgroundEvaluator.service");
 const app = express();
 
 // Security middleware
@@ -43,9 +44,19 @@ app.use("/api", require("./routes/market.routes"));
 app.use("/", require("./routes/health.routes"));
 app.use("/api/advisory", require("./routes/advisory.routes"));
 app.use("/api/insights", require("./routes/insights.routes"));
+app.use("/api/portfolio", require("./routes/portfolio.routes"));
+app.use("/api/watchlist", require("./routes/watchlist.routes")); // Watchlist
+app.use("/api/alerts", require("./routes/alerts.routes"));
+app.use("/api/screeners", require("./routes/screeners.routes")); // NEW: Saved Screeners
+app.use("/api/suggestions", require("./routes/suggestions.routes")); // Query suggestions
+app.use("/api/admin", require("./routes/admin.routes"));
 
 // Start health monitoring
 healthMonitor.startPeriodicMonitoring(60);
+
+// Start background evaluation (every 1 hour by default)
+// Can be configured via EVALUATION_INTERVAL_MS environment variable
+backgroundEvaluator.start();
 
 // Global error handler
 app.use((err, req, res, next) => {

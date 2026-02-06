@@ -64,20 +64,9 @@ function compileDSL(dsl) {
     });
   }
 
-  // Add last_quarters filter (optional)
-  if (dsl.last_quarters) {
-    const monthsBack = parseInt(dsl.last_quarters) * 3;
-    sql += ` AND c.symbol IN (
-      SELECT company_id
-      FROM quarterly_financials
-      WHERE quarter >= CURRENT_DATE - INTERVAL '1 month' * $${paramIndex}
-      GROUP BY company_id
-      HAVING COUNT(*) = $${paramIndex + 1} AND MIN(revenue) > 0
-    )`;
-    params.push(monthsBack);
-    params.push(parseInt(dsl.last_quarters));
-    paramIndex += 2;
-  }
+  // NOTE: last_quarters filter disabled because quarterly_financials table
+  // structure is incompatible (company_id vs symbol mismatch)
+  // This can be re-enabled after fixing the database schema
 
   // Add ordering
   sql += ` ORDER BY f.market_cap DESC LIMIT 100`;

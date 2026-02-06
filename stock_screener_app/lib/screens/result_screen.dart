@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:math' as math;
 import '../utils/colors.dart';
-import '../services/watchlist_service.dart';
+import '../services/watchlist_api_service.dart';
 import '../models/stock_model.dart';
 import 'stock_detail_screen.dart';
+import 'add_to_watchlist_dialog.dart';
 
 class ResultScreen extends StatefulWidget {
   final List<dynamic> results;
@@ -24,6 +25,8 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   late AnimationController _animationController;
   String _sortBy = 'market_cap';
   bool _sortAscending = false;
+  final WatchlistApiService _watchlistService = WatchlistApiService();
+  final int _userId = 1; // Default user ID
 
   @override
   void initState() {
@@ -121,7 +124,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final insights = _insights;
 
     return Scaffold(
       body: Container(
@@ -207,180 +209,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInsights(Map<String, dynamic> insights, ColorScheme colorScheme) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colorScheme.primary.withOpacity(0.1),
-            colorScheme.secondary.withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colorScheme.primary.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.primary.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.insights, color: colorScheme.primary, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Market Insights',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${insights['stockCount']} stocks',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          
-          // P/E Ratio Insights
-          Text(
-            'P/E Ratio Analysis',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade700,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildInsightCard(
-                  'Average',
-                  insights['avgPE'].toStringAsFixed(2),
-                  Icons.trending_up,
-                  colorScheme,
-                  Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildInsightCard(
-                  'Minimum',
-                  insights['minPE'].toStringAsFixed(2),
-                  Icons.arrow_downward,
-                  colorScheme,
-                  Colors.green,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildInsightCard(
-                  'Maximum',
-                  insights['maxPE'].toStringAsFixed(2),
-                  Icons.arrow_upward,
-                  colorScheme,
-                  Colors.orange,
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Market Cap Insights
-          Text(
-            'Market Capitalization',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade700,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildInsightCard(
-                  'Total Value',
-                  _formatMarketCap(insights['totalMarketCap']),
-                  Icons.account_balance,
-                  colorScheme,
-                  Colors.purple,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildInsightCard(
-                  'Avg Value',
-                  _formatMarketCap(insights['avgMarketCap']),
-                  Icons.bar_chart,
-                  colorScheme,
-                  Colors.indigo,
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Sector Distribution
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outline.withOpacity(0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.pie_chart, size: 20, color: colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Sector Distribution',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ..._buildSectorBars(insights['sectors'] as Map<String, int>, colorScheme),
-              ],
-            ),
           ),
         ],
       ),
@@ -693,30 +521,69 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                         ],
                       ),
                     ),
-                    FutureBuilder<bool>(
-                      future: WatchlistService.isInWatchlist(symbol),
+                    IconButton(
+                      icon: Icon(
+                        Icons.bookmark_border,
+                        color: Color(0xFF3B82F6),
+                        size: 24,
+                      ),
+                      tooltip: 'Add to Watchlist',
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AddToWatchlistDialog(
+                            symbol: symbol,
+                            companyName: name,
+                            currentPrice: _parseDouble(stock['current_price'] ?? stock['price'] ?? 0),
+                            userId: _userId,
+                          ),
+                        ).then((result) {
+                          if (result == true) {
+                            setState(() {}); // Refresh UI
+                          }
+                        });
+                      },
+                    ),
+                    if (false) // Placeholder to maintain structure
+                      FutureBuilder<bool>(
+                      future: _watchlistService.isInWatchlist(_userId, symbol),
                       builder: (context, snapshot) {
                         final isInWatchlist = snapshot.data ?? false;
                         return IconButton(
-                          icon: FaIcon(
-                            isInWatchlist ? FontAwesomeIcons.solidStar : FontAwesomeIcons.star,
-                            color: isInWatchlist ? AppColors.accentOrange : Colors.grey,
-                            size: 20,
+                          icon: Icon(
+                            isInWatchlist ? Icons.bookmark : Icons.bookmark_border,
+                            color: isInWatchlist ? Color(0xFF3B82F6) : Colors.grey,
+                            size: 24,
                           ),
                           onPressed: () async {
-                            await WatchlistService.toggleWatchlist(symbol);
-                            setState(() {}); // Refresh UI
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  isInWatchlist
-                                      ? 'Removed from watchlist'
-                                      : 'Added to watchlist',
-                                ),
-                                duration: const Duration(seconds: 1),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
+                            try {
+                              final newState = await _watchlistService.toggleWatchlist(_userId, symbol);
+                              setState(() {}); // Refresh UI
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      newState
+                                          ? '✅ Added $symbol to watchlist'
+                                          : '❌ Removed $symbol from watchlist',
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                    backgroundColor: newState ? Colors.green : Colors.orange,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
                           },
                         );
                       },

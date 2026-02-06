@@ -1,8 +1,26 @@
--- Drop existing tables
+-- Drop existing tables in correct order (respecting foreign keys)
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS alerts CASCADE;
+DROP TABLE IF EXISTS condition_evaluations CASCADE;
+DROP TABLE IF EXISTS saved_screeners CASCADE;
+DROP TABLE IF EXISTS portfolio_items CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS quarterly_financials CASCADE;
 DROP TABLE IF EXISTS fundamentals CASCADE;
 DROP TABLE IF EXISTS companies CASCADE;
 
+-- Create users table
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255),
+  alert_preferences JSONB DEFAULT '{"enabled": true, "allowedTypes": [], "severityThreshold": "low"}'::jsonb,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_email ON users(email);
+ 
 -- Create companies table (what the code expects)
 CREATE TABLE companies (
   id SERIAL PRIMARY KEY,
@@ -108,3 +126,135 @@ FROM companies c
 INNER JOIN fundamentals f ON c.symbol = f.symbol
 ORDER BY f.market_cap DESC
 LIMIT 5;
+-- ============================================
+-- PORTFOLIO MANAGEMENT TABLES
+-- ============================================
+
+-- Watchlist table
+CREATE TABLE watchlist (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, company_id)
+);
+
+CREATE INDEX idx_watchlist_user ON watchlist(user_id);
+CREATE INDEX idx_watchlist_company ON watchlist(company_id);
+
+-- Portfolio items (user holdings)
+CREATE TABLE portfolio_items (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  quantity DECIMAL(15, 4) NOT NULL CHECK (quantity > 0),
+  avg_price DECIMAL(15, 2) NOT NULL CHECK (avg_price > 0),
+  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, company_id)
+);
+
+CREATE INDEX idx_portfolio_user ON portfolio_items(user_id);
+CREATE INDEX idx_portfolio_company ON portfolio_items(company_id);
+
+-- ============================================
+-- SAVED SCREENERS
+-- ============================================
+
+CREATE TABLE saved_screeners (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  dsl_query JSONB NOT NULL,
+  active BOOLEAN DEFAULT true,
+  notification_enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_saved_screeners_user ON saved_screeners(user_id);
+CREATE INDEX idx_saved_screeners_active ON saved_screeners(active) WHERE active = true;
+
+-- ============================================
+-- CONDITION EVALUATION ENGINE
+-- ============================================
+
+CREATE TABLE condition_evaluations (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  evaluation_type VARCHAR(50) NOT NULL, -- 'portfolio', 'screener', 'watchlist'
+  condition_key VARCHAR(100) NOT NULL, -- e.g., 'pe_ratio_below_20', 'revenue_growth_high'
+  previous_state JSONB, -- Previous metrics snapshot
+  current_state JSONB NOT NULL, -- Current metrics snapshot
+  state_changed BOOLEAN DEFAULT false,
+  evaluated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, company_id, evaluation_type, condition_key)
+);
+
+CREATE INDEX idx_evaluations_user_company ON condition_evaluations(user_id, company_id);
+CREATE INDEX idx_evaluations_changed ON condition_evaluations(state_changed) WHERE state_changed = true;
+CREATE INDEX idx_evaluations_type ON condition_evaluations(evaluation_type);
+
+-- ============================================
+-- ALERT SYSTEM
+-- ============================================
+
+CREATE TABLE alerts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  alert_type VARCHAR(50) NOT NULL, -- 'pe_change', 'revenue_growth', 'price_target', 'VALUATION', 'EVENT', 'PORTFOLIO', etc.
+  severity VARCHAR(20) NOT NULL, -- 'low', 'medium', 'high', 'critical'
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  previous_value JSONB,
+  current_value JSONB,
+  metadata JSONB, -- Additional context
+  active BOOLEAN DEFAULT true,
+  read BOOLEAN DEFAULT false,
+  delivered BOOLEAN DEFAULT false,
+  acknowledged BOOLEAN DEFAULT false,
+  triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  delivered_at TIMESTAMP,
+  acknowledged_at TIMESTAMP,
+  expires_at TIMESTAMP
+);
+
+CREATE INDEX idx_alerts_user ON alerts(user_id);
+CREATE INDEX idx_alerts_active ON alerts(active) WHERE active = true;
+CREATE INDEX idx_alerts_unread ON alerts(user_id, read) WHERE read = false;
+CREATE INDEX idx_alerts_acknowledged ON alerts(user_id, acknowledged) WHERE acknowledged = false;
+CREATE INDEX idx_alerts_triggered ON alerts(triggered_at DESC);
+
+-- ============================================
+-- AUDIT LOGGING
+-- ============================================
+
+CREATE TABLE audit_logs (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  entity_type VARCHAR(50) NOT NULL, -- 'alert', 'portfolio', 'screener', 'evaluation'
+  entity_id INTEGER,
+  action VARCHAR(50) NOT NULL, -- 'create', 'update', 'delete', 'trigger', 'evaluate'
+  description TEXT,
+  metadata JSONB, -- Flexible JSON storage for additional data
+  ip_address VARCHAR(45),
+  user_agent TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_audit_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_entity ON audit_logs(entity_type, entity_id);
+CREATE INDEX idx_audit_action ON audit_logs(action);
+CREATE INDEX idx_audit_created ON audit_logs(created_at DESC);
+
+-- ============================================
+-- SEED DATA
+-- ============================================
+
+-- Insert demo user
+INSERT INTO users (email, name) VALUES
+('demo@stockscreener.com', 'Demo User'),
+('investor@example.com', 'Active Investor');

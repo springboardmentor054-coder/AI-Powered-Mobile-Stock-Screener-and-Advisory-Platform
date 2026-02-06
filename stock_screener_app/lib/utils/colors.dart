@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// App Color Scheme - Modern Purple/Teal Theme
+/// App Color Scheme - Bright Modern Theme
 class AppColors {
-  // Primary Colors
-  static const Color primary = Color(0xFF6366F1); // Vibrant Indigo
-  static const Color primaryDark = Color(0xFF4F46E5);
-  static const Color primaryLight = Color(0xFF818CF8);
+  // Primary Colors - Bright Blue
+  static const Color primary = Color(0xFF3B82F6); // Bright Blue
+  static const Color primaryDark = Color(0xFF2563EB);
+  static const Color primaryLight = Color(0xFF60A5FA);
   
   // Secondary Colors
   static const Color secondary = Color(0xFF14B8A6); // Teal
@@ -47,13 +47,13 @@ class AppColors {
     Color(0xFF06B6D4), // Cyan
   ];
   
-  // Gradient Colors
+  // Gradient Colors - Updated for Bright Theme
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF6366F1),
-      Color(0xFF8B5CF6),
+      Color(0xFF60A5FA),
+      Color(0xFF3B82F6),
     ],
   );
   

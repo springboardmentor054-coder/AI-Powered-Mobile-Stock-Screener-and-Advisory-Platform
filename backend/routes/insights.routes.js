@@ -440,4 +440,246 @@ function generateActionableInsights(analysis) {
   return insights;
 }
 
+/**
+ * NEW MILESTONE 3 ROUTES
+ */
+
+const insightsService = require('../services/insights.service');
+const riskService = require('../services/risk.service');
+const quarterlyFilterService = require('../services/quarterlyFilter.service');
+
+/**
+ * @route   GET /api/insights/stock/:symbol
+ * @desc    Get comprehensive SEBI-compliant insights for a stock
+ * @access  Public
+ */
+router.get('/stock/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const insights = await insightsService.generateInsights(symbol.toUpperCase());
+
+    res.json({
+      success: true,
+      data: insights
+    });
+  } catch (error) {
+    console.error('[Insights] Generate insights error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate insights',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/insights/risk/:symbol
+ * @desc    Get comprehensive risk analysis for a stock
+ * @access  Public
+ */
+router.get('/risk/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const riskAnalysis = await riskService.analyzeRisk(symbol.toUpperCase());
+
+    res.json({
+      success: true,
+      data: riskAnalysis
+    });
+  } catch (error) {
+    console.error('[Insights] Risk analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze risk',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/insights/quarterly/positive-earnings
+ * @desc    Find stocks with positive earnings for last N quarters
+ * @access  Public
+ */
+router.get('/quarterly/positive-earnings', async (req, res) => {
+  try {
+    const nQuarters = parseInt(req.query.quarters) || 4;
+    const minProfit = parseFloat(req.query.minProfit) || 0;
+
+    const stocks = await quarterlyFilterService.findStocksWithPositiveEarnings(nQuarters, minProfit);
+
+    res.json({
+      success: true,
+      data: {
+        filters_applied: {
+          quarters: nQuarters,
+          min_profit: minProfit
+        },
+        stocks,
+        count: stocks.length
+      }
+    });
+  } catch (error) {
+    console.error('[Insights] Positive earnings error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to filter stocks',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/insights/quarterly/revenue-growth
+ * @desc    Find stocks with consistent revenue growth
+ * @access  Public
+ */
+router.get('/quarterly/revenue-growth', async (req, res) => {
+  try {
+    const nQuarters = parseInt(req.query.quarters) || 4;
+    const minGrowthRate = parseFloat(req.query.minGrowth) || 0;
+
+    const stocks = await quarterlyFilterService.findStocksWithRevenueGrowth(nQuarters, minGrowthRate);
+
+    res.json({
+      success: true,
+      data: {
+        filters_applied: {
+          quarters: nQuarters,
+          min_growth_rate: minGrowthRate
+        },
+        stocks,
+        count: stocks.length
+      }
+    });
+  } catch (error) {
+    console.error('[Insights] Revenue growth error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to filter stocks',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/insights/quarterly/improving-margins
+ * @desc    Find stocks with improving profit margins
+ * @access  Public
+ */
+router.get('/quarterly/improving-margins', async (req, res) => {
+  try {
+    const nQuarters = parseInt(req.query.quarters) || 4;
+    const stocks = await quarterlyFilterService.findStocksWithImprovingMargins(nQuarters);
+
+    res.json({
+      success: true,
+      data: {
+        filters_applied: {
+          quarters: nQuarters
+        },
+        stocks,
+        count: stocks.length
+      }
+    });
+  } catch (error) {
+    console.error('[Insights] Improving margins error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to filter stocks',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/insights/quarterly/trend/:symbol
+ * @desc    Get detailed quarterly trend for a stock
+ * @access  Public
+ */
+router.get('/quarterly/trend/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const nQuarters = parseInt(req.query.quarters) || 8;
+
+    const trend = await quarterlyFilterService.getQuarterlyTrend(symbol.toUpperCase(), nQuarters);
+
+    res.json({
+      success: true,
+      data: trend
+    });
+  } catch (error) {
+    console.error('[Insights] Quarterly trend error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get quarterly trend',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/insights/quarterly/consistent-performance
+ * @desc    Find stocks with consistent quarterly performance
+ * @access  Public
+ */
+router.get('/quarterly/consistent-performance', async (req, res) => {
+  try {
+    const nQuarters = parseInt(req.query.quarters) || 4;
+    const maxVolatility = parseFloat(req.query.maxVolatility) || 20;
+
+    const stocks = await quarterlyFilterService.findStocksWithConsistentPerformance(nQuarters, maxVolatility);
+
+    res.json({
+      success: true,
+      data: {
+        filters_applied: {
+          quarters: nQuarters,
+          max_volatility: maxVolatility
+        },
+        stocks,
+        count: stocks.length
+      }
+    });
+  } catch (error) {
+    console.error('[Insights] Consistent performance error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to filter stocks',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/insights/quarterly/sector-outperformers/:sector
+ * @desc    Find stocks exceeding sector average growth
+ * @access  Public
+ */
+router.get('/quarterly/sector-outperformers/:sector', async (req, res) => {
+  try {
+    const { sector } = req.params;
+    const nQuarters = parseInt(req.query.quarters) || 4;
+
+    const stocks = await quarterlyFilterService.findSectorOutperformers(sector, nQuarters);
+
+    res.json({
+      success: true,
+      data: {
+        sector,
+        quarters_analyzed: nQuarters,
+        outperformers: stocks,
+        count: stocks.length
+      }
+    });
+  } catch (error) {
+    console.error('[Insights] Sector outperformers error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to find outperformers',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

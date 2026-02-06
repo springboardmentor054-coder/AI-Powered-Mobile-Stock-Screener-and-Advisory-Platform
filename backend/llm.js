@@ -33,10 +33,12 @@ Output format (strict JSON, no text):
 Rules:
 - Only output valid JSON, nothing else
 - sector is optional
-- filters is array of objects
-- last_quarters is optional
+- filters is array of objects - ONLY add filters if EXPLICITLY mentioned in the query
+- last_quarters is optional - ONLY add if the user asks for quarterly data
 - Allowed fields: pe_ratio, peg_ratio, debt_to_fcf
-- Allowed operators: <, >, <=, >=, =`;
+- Allowed operators: <, >, <=, >=, =
+- DO NOT add filters that are not explicitly requested
+- If user just asks for a sector (e.g., "show IT stocks"), return {"sector": "IT", "filters": []}`;
 
   try {
     console.log("Creating Groq completion with query:", query);
