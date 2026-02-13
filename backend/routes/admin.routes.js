@@ -9,6 +9,7 @@ const backgroundEvaluator = require('../services/backgroundEvaluator.service');
 const auditService = require('../services/audit.service');
 const queryCache = require('../services/queryCache.service');
 const pool = require('../database');
+const dhanImportService = require('../services/dhanImport.service');
 
 /**
  * @route   GET /api/admin/status
@@ -149,6 +150,34 @@ router.get('/database-stats', async (req, res) => {
 });
 
 /**
+ * @route   POST /api/admin/dhan/import
+ * @desc    Import Dhan CSV data into database
+ * @access  Public (should be protected in production)
+ */
+router.post('/dhan/import', async (req, res) => {
+  try {
+    const replaceExisting = req.query.replace !== 'false';
+    const csvPath = req.body?.csv_path;
+    const result = await dhanImportService.importDhanCsv({
+      csvPath,
+      replaceExisting
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('[Admin] Dhan import error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to import Dhan CSV',
+      message: error.message
+    });
+  }
+});
+
+/**
  * Helper: Get database statistics
  */
 async function getDatabaseStats() {
@@ -157,6 +186,7 @@ async function getDatabaseStats() {
       'users',
       'companies',
       'fundamentals',
+      'dhan_stocks',
       'portfolio_items',
       'alerts',
       'condition_evaluations',

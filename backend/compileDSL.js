@@ -1,17 +1,42 @@
 /**
  * Compiles DSL (Domain Specific Language) JSON to SQL query
+ * Queries Dhan CSV data from dhan_stocks table
  * 
  * Expected DSL format:
  * {
- *   "sector": "IT",
  *   "filters": [
- *     { "field": "pe_ratio", "operator": "<", "value": 5 }
- *   ],
- *   "last_quarters": 4
+ *     { "field": "pe_ratio", "operator": "<", "value": 25 },
+ *     { "field": "market_cap_cr", "operator": ">", "value": 1000 }
+ *   ]
  * }
  */
 
-const ALLOWED_FIELDS = ["pe_ratio", "peg_ratio", "debt_to_fcf", "revenue_growth"];
+const ALLOWED_FIELDS = [
+  "pe_ratio",
+  "market_cap_cr",
+  "industry_pe",
+  "pb_ratio",
+  "roe",
+  "roce",
+  "eps",
+  "ltp",
+  "change_pct",
+  "open",
+  "volume",
+  "return_1m",
+  "return_3m",
+  "return_1y",
+  "return_3y",
+  "return_5y",
+  "rsi",
+  "dividend",
+  "high_52w",
+  "low_52w",
+  "dma_50",
+  "dma_200",
+  "margin_funding",
+  "margin_pledge"
+];
 const ALLOWED_OPERATORS = ["<", ">", "<=", ">=", "="];
 
 function compileDSL(dsl) {
@@ -32,44 +57,64 @@ function compileDSL(dsl) {
   // Start building SQL query
   let sql = `
     SELECT 
-      c.symbol,
-      c.name,
-      c.sector,
-      f.pe_ratio,
-      f.peg_ratio,
-      f.debt_to_fcf,
-      f.market_cap,
-      f.revenue_growth
-    FROM companies c
-    INNER JOIN fundamentals f ON c.symbol = f.symbol
+      name,
+      ltp,
+      change_pct,
+      open,
+      volume,
+      market_cap_cr,
+      pe_ratio,
+      industry_pe,
+      pb_ratio,
+      roe,
+      roce,
+      eps,
+      return_1m,
+      return_3m,
+      return_1y,
+      return_3y,
+      return_5y,
+      dividend,
+      rsi,
+      high_52w,
+      low_52w,
+      dma_50,
+      dma_200,
+      margin_funding,
+      margin_pledge
+    FROM dhan_stocks
     WHERE 1=1
   `;
 
   const params = [];
   let paramIndex = 1;
 
-  // Add sector filter
-  if (dsl.sector) {
-    sql += ` AND c.sector = $${paramIndex}`;
-    params.push(dsl.sector);
-    paramIndex++;
-  }
-
   // Add numeric filters
   if (dsl.filters && dsl.filters.length > 0) {
     dsl.filters.forEach((filter) => {
-      sql += ` AND f.${filter.field} ${filter.operator} $${paramIndex}`;
+      sql += ` AND ${filter.field} ${filter.operator} $${paramIndex}`;
       params.push(filter.value);
       paramIndex++;
     });
   }
 
-  // NOTE: last_quarters filter disabled because quarterly_financials table
-  // structure is incompatible (company_id vs symbol mismatch)
-  // This can be re-enabled after fixing the database schema
+  let orderClause = "market_cap_cr DESC NULLS LAST";
 
-  // Add ordering
-  sql += ` ORDER BY f.market_cap DESC LIMIT 100`;
+  if (dsl.filters && dsl.filters.length > 0) {
+    const primary = dsl.filters[0];
+    if (ALLOWED_FIELDS.includes(primary.field) && typeof primary.value === "number") {
+      // Rank closest to the requested threshold first so similar queries
+      // (e.g. PE<10 vs PE<25) return visibly different top results.
+      sql += ` ORDER BY ABS(${primary.field} - $${paramIndex}) ASC NULLS LAST, market_cap_cr DESC NULLS LAST LIMIT 100`;
+      params.push(primary.value);
+      paramIndex++;
+      console.log("Generated SQL:", sql);
+      console.log("SQL Params:", params);
+      return { sql, params };
+    }
+  }
+
+  sql += ` ORDER BY ${orderClause} LIMIT 100`;
 
   console.log("Generated SQL:", sql);
   console.log("SQL Params:", params);

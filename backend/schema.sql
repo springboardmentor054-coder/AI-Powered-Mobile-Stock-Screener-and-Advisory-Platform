@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS alerts CASCADE;
 DROP TABLE IF EXISTS condition_evaluations CASCADE;
 DROP TABLE IF EXISTS saved_screeners CASCADE;
 DROP TABLE IF EXISTS portfolio_items CASCADE;
+DROP TABLE IF EXISTS dhan_stocks CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS quarterly_financials CASCADE;
 DROP TABLE IF EXISTS fundamentals CASCADE;
@@ -21,6 +22,43 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email ON users(email);
  
+-- Dhan CSV stock data table
+CREATE TABLE dhan_stocks (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) UNIQUE NOT NULL,
+  screener_url TEXT,
+  ltp DECIMAL(18, 2),
+  change_pct DECIMAL(8, 3),
+  open DECIMAL(18, 2),
+  volume BIGINT,
+  market_cap_cr DECIMAL(18, 2),
+  pe_ratio DECIMAL(18, 2),
+  industry_pe DECIMAL(18, 2),
+  high_52w DECIMAL(18, 2),
+  low_52w DECIMAL(18, 2),
+  return_1m DECIMAL(8, 3),
+  return_3m DECIMAL(8, 3),
+  return_1y DECIMAL(8, 3),
+  return_3y DECIMAL(8, 3),
+  return_5y DECIMAL(8, 3),
+  pb_ratio DECIMAL(18, 2),
+  dividend DECIMAL(8, 3),
+  roe DECIMAL(8, 3),
+  roce DECIMAL(8, 3),
+  eps DECIMAL(18, 2),
+  dma_50 DECIMAL(18, 2),
+  dma_200 DECIMAL(18, 2),
+  rsi DECIMAL(8, 3),
+  margin_funding DECIMAL(8, 3),
+  margin_pledge DECIMAL(8, 3),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_dhan_stocks_name ON dhan_stocks(name);
+CREATE INDEX idx_dhan_stocks_market_cap ON dhan_stocks(market_cap_cr);
+CREATE INDEX idx_dhan_stocks_pe_ratio ON dhan_stocks(pe_ratio);
+
 -- Create companies table (what the code expects)
 CREATE TABLE companies (
   id SERIAL PRIMARY KEY,

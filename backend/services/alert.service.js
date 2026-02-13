@@ -5,6 +5,7 @@
 
 const pool = require("../database");
 const auditService = require("./audit.service");
+const finnhubService = require("./finnhub.service");
 
 class AlertService {
   constructor() {
@@ -260,7 +261,87 @@ class AlertService {
       query += ' ORDER BY a.triggered_at DESC';
 
       const result = await pool.query(query, [userId]);
-      return result.rows;
+      const alerts = result.rows;
+
+      // Get unique symbols from alerts
+      const symbols = [...new Set(alerts.map(a => a.symbol))];
+
+      // Fetch current prices from Finnhub
+      let priceMap = new Map();
+      if (symbols.length > 0) {
+        try {
+          const priceData = await finnhubService.getQuotes(symbols);
+          // Normalize symbol matching (strip .NS/.BO suffix)
+          priceMap = new Map(priceData.map(p => {
+            const baseSymbol = p.symbol.replace(/\.(NS|BO)$/, '');
+            return [baseSymbol, p];
+          }));
+        } catch (error) {
+          console.error("Failed to fetch prices for alerts:", error.message);
+        }
+      }
+
+      // Enrich alerts with current prices and extract JSONB values
+      const enrichedAlerts = alerts.map(alert => {
+        const priceInfo = priceMap.get(alert.symbol);
+        const currentPrice = priceInfo?.current_price || null;
+
+        // Extract target price ONLY for price-related alerts
+        let targetPrice = null;
+        const priceAlertTypes = ['price_target', 'price_above', 'price_below', 'stop_loss'];
+        if (priceAlertTypes.some(type => alert.alert_type.includes(type))) {
+          if (alert.metadata && typeof alert.metadata === 'object') {
+            targetPrice = alert.metadata.target_price || alert.metadata.threshold || null;
+          }
+          if (!targetPrice && alert.previous_value && typeof alert.previous_value === 'object') {
+            targetPrice = alert.previous_value.price || alert.previous_value.value || null;
+          }
+          if (!targetPrice && alert.current_value && typeof alert.current_value === 'object') {
+            targetPrice = alert.current_value.price || alert.current_value.value || null;
+          }
+        }
+
+        // Calculate triggered status based on alert type
+        let isTriggered = false;
+        let status = 'monitoring';
+        
+        if (alert.alert_type.includes('price') && currentPrice && targetPrice) {
+          // Price-based alerts
+          if (alert.alert_type.includes('above') || alert.alert_type.includes('high')) {
+            isTriggered = currentPrice >= targetPrice;
+          } else if (alert.alert_type.includes('below') || alert.alert_type.includes('low')) {
+            isTriggered = currentPrice <= targetPrice;
+          } else {
+            const change = ((currentPrice - targetPrice) / targetPrice) * 100;
+            isTriggered = Math.abs(change) >= 5; // 5% threshold
+          }
+        } else if (alert.alert_type.includes('revenue_growth')) {
+          // Revenue growth alerts - check if threshold met
+          const threshold = alert.metadata?.threshold || 10;
+          const revenueGrowth = alert.current_value?.revenue_growth || alert.metadata?.revenue_growth || 0;
+          isTriggered = revenueGrowth >= threshold;
+        } else if (alert.alert_type.includes('pe_ratio')) {
+          // PE ratio change alerts - check percentage change
+          const changePercent = parseFloat(alert.metadata?.change_percent) || 0;
+          isTriggered = Math.abs(changePercent) >= 5; // 5% threshold
+        } else {
+          // Default: already triggered
+          isTriggered = true;
+        }
+        
+        status = isTriggered ? 'triggered' : 'monitoring';
+
+        return {
+          ...alert,
+          current_price: currentPrice,
+          target_price: targetPrice,
+          is_triggered: isTriggered,
+          status: status,
+          price_change: priceInfo?.change_percent || null
+        };
+      });
+
+      return enrichedAlerts;
     } catch (error) {
       console.error("Get user alerts error:", error);
       throw error;

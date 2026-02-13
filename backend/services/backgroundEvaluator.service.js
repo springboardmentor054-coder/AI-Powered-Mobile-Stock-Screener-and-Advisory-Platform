@@ -151,7 +151,7 @@ class BackgroundEvaluatorService {
           alertsTriggered += stateChanges.length;
           
           if (stateChanges.length > 0) {
-            console.log(`[BackgroundEvaluator] ✅ Triggered ${stateChanges.length} alerts for ${user.email}`);
+            console.log(`[BackgroundEvaluator] Triggered ${stateChanges.length} alerts for ${user.email}`);
           }
         } catch (error) {
           console.error(`[BackgroundEvaluator] Error evaluating portfolio for user ${user.id}:`, error.message);
@@ -212,7 +212,7 @@ class BackgroundEvaluatorService {
                 'MEDIUM'
               );
               alertsTriggered++;
-              console.log(`[BackgroundEvaluator] ✅ Created screener match alert for user ${screener.user_id}`);
+              console.log(`[BackgroundEvaluator] Created screener match alert for user ${screener.user_id}`);
             } catch (alertError) {
               console.error(`[BackgroundEvaluator] Failed to create alert for screener ${screener.screener_id}:`, alertError.message);
             }

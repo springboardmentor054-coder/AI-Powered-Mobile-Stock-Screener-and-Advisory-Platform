@@ -13,7 +13,7 @@ class PremiumCard extends StatelessWidget {
   final double? height;
   final double? width;
   final BorderRadius? borderRadius;
-  
+
   const PremiumCard({
     super.key,
     required this.child,
@@ -38,22 +38,18 @@ class PremiumCard extends StatelessWidget {
         gradient: gradient,
         borderRadius: borderRadius ?? BorderRadius.circular(PremiumUI.radiusXL),
         border: useGlass
-            ? Border.all(
-                color: PremiumColors.overlay,
-                width: 1,
-              )
+            ? Border.all(color: PremiumColors.overlay, width: 1)
             : null,
         boxShadow: useGlass ? null : PremiumUI.softShadow(),
       ),
       child: useGlass
           ? ClipRRect(
-              borderRadius: borderRadius ?? BorderRadius.circular(PremiumUI.radiusXL),
+              borderRadius:
+                  borderRadius ?? BorderRadius.circular(PremiumUI.radiusXL),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: PremiumColors.glassBg,
-                  ),
+                  decoration: BoxDecoration(color: PremiumColors.glassBg),
                   child: child,
                 ),
               ),
@@ -67,9 +63,10 @@ class PremiumCard extends StatelessWidget {
         borderRadius: borderRadius ?? BorderRadius.circular(PremiumUI.radiusXL),
         child: InkWell(
           onTap: onTap,
-          borderRadius: borderRadius ?? BorderRadius.circular(PremiumUI.radiusXL),
-          splashColor: PremiumColors.neonTeal.withOpacity(0.1),
-          highlightColor: PremiumColors.neonTeal.withOpacity(0.05),
+          borderRadius:
+              borderRadius ?? BorderRadius.circular(PremiumUI.radiusXL),
+          splashColor: PremiumColors.neonTeal.withValues(alpha: 0.1),
+          highlightColor: PremiumColors.neonTeal.withValues(alpha: 0.05),
           child: content,
         ),
       );
@@ -104,25 +101,23 @@ class PriceChangeChip extends StatelessWidget {
         vertical: isSmall ? 4 : 6,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(PremiumUI.radiusM),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: isSmall ? 12 : 14,
-            color: color,
-          ),
+          Icon(icon, size: isSmall ? 12 : 14, color: color),
           const SizedBox(width: 4),
           Text(
             '${changePercent.toStringAsFixed(2)}%',
-            style: (isSmall ? PremiumTypography.caption : PremiumTypography.body2).copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontFamily: PremiumTypography.numericFont,
-            ),
+            style:
+                (isSmall ? PremiumTypography.caption : PremiumTypography.body2)
+                    .copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: PremiumTypography.numericFont,
+                    ),
           ),
         ],
       ),
@@ -158,7 +153,9 @@ class StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(PremiumUI.spacingS),
             decoration: BoxDecoration(
-              color: (iconColor ?? PremiumColors.neonTeal).withOpacity(0.1),
+              color: (iconColor ?? PremiumColors.neonTeal).withValues(
+                alpha: 0.1,
+              ),
               borderRadius: BorderRadius.circular(PremiumUI.radiusM),
             ),
             child: Icon(
@@ -168,15 +165,9 @@ class StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: PremiumUI.spacingM),
-          Text(
-            label,
-            style: PremiumTypography.caption,
-          ),
+          Text(label, style: PremiumTypography.caption),
           const SizedBox(height: PremiumUI.spacingXS),
-          Text(
-            value,
-            style: PremiumTypography.priceMedium,
-          ),
+          Text(value, style: PremiumTypography.priceMedium),
         ],
       ),
     );
@@ -211,10 +202,7 @@ class SectionHeader extends StatelessWidget {
             Icon(icon, size: PremiumUI.iconL, color: PremiumColors.neonTeal),
             const SizedBox(width: PremiumUI.spacingS),
           ],
-          Text(
-            title,
-            style: PremiumTypography.h3,
-          ),
+          Text(title, style: PremiumTypography.h3),
           const Spacer(),
           if (trailing != null)
             GestureDetector(
@@ -238,11 +226,7 @@ class ShimmerLoading extends StatefulWidget {
   final Widget child;
   final bool isLoading;
 
-  const ShimmerLoading({
-    super.key,
-    required this.child,
-    this.isLoading = true,
-  });
+  const ShimmerLoading({super.key, required this.child, this.isLoading = true});
 
   @override
   State<ShimmerLoading> createState() => _ShimmerLoadingState();
@@ -326,14 +310,10 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(PremiumUI.spacingL),
               decoration: BoxDecoration(
-                color: PremiumColors.neonTeal.withOpacity(0.1),
+                color: PremiumColors.neonTeal.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 64,
-                color: PremiumColors.neonTeal,
-              ),
+              child: Icon(icon, size: 64, color: PremiumColors.neonTeal),
             ),
             const SizedBox(height: PremiumUI.spacingL),
             Text(

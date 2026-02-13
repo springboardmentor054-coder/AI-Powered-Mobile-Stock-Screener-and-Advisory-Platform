@@ -4,7 +4,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/stock_model.dart';
 import '../utils/colors.dart';
 import '../services/watchlist_service.dart';
-import '../services/market_data_service.dart';
 
 class StockDetailScreen extends StatefulWidget {
   final Stock stock;
@@ -35,10 +34,26 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
 
   Future<void> _loadChartData() async {
     setState(() => _isLoadingChart = true);
-    final data = await MarketDataService.getIntradayData(widget.stock.symbol);
+    // TODO: Implement intraday chart data endpoint in backend
+    // For now, generate mock data based on current price
+    final mockData = _generateMockChartData();
     setState(() {
-      _chartData = data;
+      _chartData = mockData;
       _isLoadingChart = false;
+    });
+  }
+
+  List<Map<String, dynamic>> _generateMockChartData() {
+    final currentPrice = widget.stock.currentPrice ?? 100.0;
+    final volatility = currentPrice * 0.02; // 2% volatility
+    final random = DateTime.now().millisecondsSinceEpoch % 100;
+    
+    return List.generate(20, (i) {
+      final basePrice = currentPrice + (volatility * (random % 10 - 5) / 10);
+      return {
+        'time': DateTime.now().subtract(Duration(minutes: 20 - i)).toIso8601String(),
+        'price': basePrice + (volatility * (i % 5 - 2) / 5),
+      };
     });
   }
 

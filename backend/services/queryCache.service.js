@@ -22,7 +22,7 @@ class QueryCacheService {
    * @returns {string} Cache key
    */
   generateCacheKey(dsl) {
-    const normalized = JSON.stringify(dsl, Object.keys(dsl).sort());
+    const normalized = stableStringify(dsl);
     return `screener:${crypto.createHash('md5').update(normalized).digest('hex')}`;
   }
 
@@ -39,7 +39,7 @@ class QueryCacheService {
       const redisResult = await cache.get(key);
       if (redisResult) {
         this.hitCount++;
-        console.log(`✅ Cache HIT (Redis): ${key}`);
+        console.log(`[CACHE] HIT (Redis): ${key}`);
         return JSON.parse(redisResult);
       }
 
@@ -50,7 +50,7 @@ class QueryCacheService {
         // Check expiration
         if (cached.expires > Date.now()) {
           this.hitCount++;
-          console.log(`✅ Cache HIT (Memory): ${key}`);
+          console.log(`[CACHE] HIT (Memory): ${key}`);
           
           // Move to front (LRU)
           this.memoryCache.delete(key);
@@ -64,7 +64,7 @@ class QueryCacheService {
       }
 
       this.missCount++;
-      console.log(`❌ Cache MISS: ${key}`);
+      console.log(`[CACHE] MISS: ${key}`);
       return null;
 
     } catch (error) {
@@ -98,7 +98,7 @@ class QueryCacheService {
         this.memoryCache.delete(firstKey);
       }
 
-      console.log(`💾 Cached result: ${key} (TTL: ${ttl}s)`);
+      console.log(`Cached result: ${key} (TTL: ${ttl}s)`);
 
     } catch (error) {
       console.error('Cache set error:', error.message);
@@ -115,7 +115,7 @@ class QueryCacheService {
     try {
       await cache.del(key);
       this.memoryCache.delete(key);
-      console.log(`🗑️  Invalidated cache: ${key}`);
+      console.log(`Invalidated cache: ${key}`);
     } catch (error) {
       console.error('Cache invalidation error:', error.message);
     }
@@ -127,7 +127,7 @@ class QueryCacheService {
   async clearAll() {
     try {
       this.memoryCache.clear();
-      console.log('🗑️  Memory cache cleared');
+      console.log('Memory cache cleared');
       
       // Note: Redis keys would need pattern-based deletion
       // This is a placeholder for production implementation
@@ -163,3 +163,24 @@ class QueryCacheService {
 }
 
 module.exports = new QueryCacheService();
+
+function stableStringify(value) {
+  return JSON.stringify(sortValue(value));
+}
+
+function sortValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortValue);
+  }
+
+  if (value && typeof value === "object") {
+    const sorted = {};
+    const keys = Object.keys(value).sort();
+    for (const key of keys) {
+      sorted[key] = sortValue(value[key]);
+    }
+    return sorted;
+  }
+
+  return value;
+}

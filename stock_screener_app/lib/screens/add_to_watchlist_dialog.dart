@@ -58,42 +58,56 @@ class _AddToWatchlistDialogState extends State<AddToWatchlistDialog> {
     setState(() => _isLoading = true);
 
     try {
-      print('📝 Adding ${widget.symbol} to watchlist...');
+      print('Adding ${widget.symbol} to watchlist...');
 
       final success = await _watchlistService.addToWatchlist(
         widget.userId,
         widget.symbol,
       );
 
-      if (!success) {
-        throw Exception('Failed to add to watchlist');
-      }
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ ${widget.symbol} added to watchlist'),
-            backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (success) {
+          // Successfully added
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.symbol} added to watchlist'),
+              backgroundColor: const Color(0xFF10B981),
+              duration: const Duration(seconds: 2),
+            ),
+          );
 
-        if (_createAlert) {
-          print('🔔 Creating alert for ${widget.symbol}...');
-          await _createAlertForStock();
-        }
+          if (_createAlert) {
+            print('Creating alert for ${widget.symbol}...');
+            await _createAlertForStock();
+          }
 
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (mounted) {
-          Navigator.pop(context, true);
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            Navigator.pop(context, true);
+          }
+        } else {
+          // Already in watchlist (409)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.symbol} is already in your watchlist'),
+              backgroundColor: const Color(0xFFF59E0B),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          
+          // Still close the dialog after a short delay
+          await Future.delayed(const Duration(milliseconds: 1500));
+          if (mounted) {
+            Navigator.pop(context, false);
+          }
         }
       }
     } catch (e) {
-      print('❌ Error: $e');
+      print('Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: const Color(0xFFEF4444),
             duration: const Duration(seconds: 3),
           ),
@@ -116,7 +130,7 @@ class _AddToWatchlistDialogState extends State<AddToWatchlistDialog> {
             alertType: 'price_above',
             targetPrice: _alertPriceHigh,
           );
-          print('✅ Alert: Price above ₹${_alertPriceHigh.toStringAsFixed(2)}');
+          print('Alert: Price above ₹${_alertPriceHigh.toStringAsFixed(2)}');
           break;
         case 'below':
           await _alertService.createAlert(
@@ -125,7 +139,7 @@ class _AddToWatchlistDialogState extends State<AddToWatchlistDialog> {
             alertType: 'price_below',
             targetPrice: _alertPriceLow,
           );
-          print('✅ Alert: Price below ₹${_alertPriceLow.toStringAsFixed(2)}');
+          print('Alert: Price below ₹${_alertPriceLow.toStringAsFixed(2)}');
           break;
         case 'price_movement':
         default:
@@ -141,11 +155,11 @@ class _AddToWatchlistDialogState extends State<AddToWatchlistDialog> {
             alertType: 'price_below',
             targetPrice: _alertPriceLow,
           );
-          print('✅ Alert: Price movement ±10%');
+          print('Alert: Price movement ±10%');
           break;
       }
     } catch (e) {
-      print('⚠️ Alert warning: $e');
+      print('Alert warning: $e');
     }
   }
 
@@ -163,21 +177,25 @@ class _AddToWatchlistDialogState extends State<AddToWatchlistDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Add to Watchlist',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.companyName,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add to Watchlist',
+                          style: Theme.of(context).textTheme.headlineSmall,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.companyName,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
@@ -302,6 +320,8 @@ class _AddToWatchlistDialogState extends State<AddToWatchlistDialog> {
                           : const Text(
                         'Add to Watchlist',
                         style: TextStyle(color: Colors.white),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ),

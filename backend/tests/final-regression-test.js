@@ -25,7 +25,7 @@ const testResults = {
 // TEST 1: NULL Safety - Watchlist with NULL PE
 // ============================================
 async function testNullSafetyWatchlist() {
-  console.log('\n📋 TEST 1: NULL Safety - Watchlist Response Structure');
+  console.log('\nTEST 1: NULL Safety - Watchlist Response Structure');
   
   try {
     const response = await fetch(`${BASE_URL}/api/watchlist/${TEST_USER_ID}`);
@@ -46,11 +46,11 @@ async function testNullSafetyWatchlist() {
       });
     }
 
-    console.log('✅ PASS: Watchlist returns proper NULL-safe structure with freshness');
+    console.log('[PASS] Watchlist returns proper NULL-safe structure with freshness');
     testResults.passed++;
     return true;
   } catch (error) {
-    console.log('❌ FAIL:', error.message);
+    console.log('[FAIL]', error.message);
     testResults.failed++;
     return false;
   }
@@ -60,7 +60,7 @@ async function testNullSafetyWatchlist() {
 // TEST 2: Freshness Indicator - Data Age
 // ============================================
 async function testFreshnessIndicator() {
-  console.log('\n⏱️ TEST 2: Data Freshness Indicator Implementation');
+  console.log('\n[TEST 2] Data Freshness Indicator Implementation');
   
   try {
     const response = await fetch(`${BASE_URL}/api/watchlist/${TEST_USER_ID}`);
@@ -81,11 +81,11 @@ async function testFreshnessIndicator() {
     
     // Verify badge format
     assert(
-      ['✅', '⏱️', '🔴'].some(emoji => freshness.delay_badge.includes(emoji)),
+      ['OK', 'OLD', 'RED'].some(text => freshness.delay_badge.includes(text)),
       `Badge must include status emoji: ${freshness.delay_badge}`
     );
 
-    console.log(`✅ PASS: Freshness indicator complete - Status: ${freshness.status}, Age: ${freshness.age_minutes}m`);
+    console.log(`[PASS] Freshness indicator complete - Status: ${freshness.status}, Age: ${freshness.age_minutes}m`);
     console.log(`   Badge: "${freshness.delay_badge}"`);
     if (freshness.warning) {
       console.log(`   Warning: "${freshness.warning}"`);
@@ -93,7 +93,7 @@ async function testFreshnessIndicator() {
     testResults.passed++;
     return true;
   } catch (error) {
-    console.log('❌ FAIL:', error.message);
+    console.log('[FAIL]', error.message);
     testResults.failed++;
     return false;
   }
@@ -103,7 +103,7 @@ async function testFreshnessIndicator() {
 // TEST 3: Rate Limit Response Structure
 // ============================================
 async function testRateLimitStructure() {
-  console.log('\n🚫 TEST 3: Rate Limit (429) Error Handling');
+  console.log('\nTEST 3: Rate Limit (429) Error Handling');
   
   try {
     // Check that API service has rate limit error type
@@ -111,15 +111,15 @@ async function testRateLimitStructure() {
     const rateLimit = require('./stock_screener_app/lib/widgets/rate_limit_handler.dart');
     
     // Verify structure exists (implementation check)
-    console.log('✅ PASS: Rate limit handler widget implemented');
-    console.log('   - RateLimitError class ✓');
-    console.log('   - RateLimitBanner widget ✓');
-    console.log('   - RateLimitSnackBar helper ✓');
-    console.log('   - Exponential backoff logic ✓');
+    console.log('[PASS] Rate limit handler widget implemented');
+    console.log('   - RateLimitError class [OK]');
+    console.log('   - RateLimitBanner widget [OK]');
+    console.log('   - RateLimitSnackBar helper [OK]');
+    console.log('   - Exponential backoff logic [OK]');
     testResults.passed++;
     return true;
   } catch (error) {
-    console.log('⚠️  SKIPPED: Rate limit widget check (requires Dart analysis)');
+    console.log('[SKIPPED] Rate limit widget check (requires Dart analysis)');
     testResults.skipped++;
     return true;
   }
@@ -129,7 +129,7 @@ async function testRateLimitStructure() {
 // TEST 4: Symbol Format (.NS Suffix)
 // ============================================
 async function testSymbolFormat() {
-  console.log('\n📊 TEST 4: Stock Symbol Format Validation');
+  console.log('\nTEST 4: Stock Symbol Format Validation');
   
   try {
     const response = await fetch(`${BASE_URL}/api/watchlist/${TEST_USER_ID}`);
@@ -144,16 +144,16 @@ async function testSymbolFormat() {
       assert(symbol && symbol.length > 0, 'Symbol must not be empty');
       assert(/^[A-Z0-9\-\.]+$/.test(symbol), `Invalid symbol format: ${symbol}`);
       
-      console.log(`✅ PASS: Symbol format valid - Sample: "${symbol}"`);
+      console.log(`[PASS] Symbol format valid - Sample: "${symbol}"`);
       testResults.passed++;
       return true;
     } else {
-      console.log('⚠️  SKIPPED: No stocks in watchlist to test');
+      console.log('[SKIPPED] No stocks in watchlist to test');
       testResults.skipped++;
       return true;
     }
   } catch (error) {
-    console.log('❌ FAIL:', error.message);
+    console.log('[FAIL]', error.message);
     testResults.failed++;
     return false;
   }
@@ -163,7 +163,7 @@ async function testSymbolFormat() {
 // TEST 5: API Response Metadata Presence
 // ============================================
 async function testMetadataInAllResponses() {
-  console.log('\n📦 TEST 5: Metadata Presence in All Responses');
+  console.log('\nTEST 5: Metadata Presence in All Responses');
   
   try {
     // Test multiple endpoints
@@ -182,11 +182,11 @@ async function testMetadataInAllResponses() {
       passed++;
     }
 
-    console.log(`✅ PASS: All tested endpoints include metadata (${passed}/${endpoints.length})`);
+    console.log(`[PASS] All tested endpoints include metadata (${passed}/${endpoints.length})`);
     testResults.passed++;
     return true;
   } catch (error) {
-    console.log('❌ FAIL:', error.message);
+    console.log('[FAIL]', error.message);
     testResults.failed++;
     return false;
   }
@@ -196,7 +196,7 @@ async function testMetadataInAllResponses() {
 // TEST 6: No Console Errors Check
 // ============================================
 async function testNoConsoleErrors() {
-  console.log('\n🔍 TEST 6: Backend Error Logging Check');
+  console.log('\nTEST 6: Backend Error Logging Check');
   
   try {
     // Simulate a request and check server logs for errors
@@ -205,11 +205,11 @@ async function testNoConsoleErrors() {
     // If we got a response, the server didn't crash
     assert(response.ok || response.status < 500, 'Server error should not occur');
 
-    console.log('✅ PASS: No server errors logged on healthy requests');
+    console.log('[PASS] No server errors logged on healthy requests');
     testResults.passed++;
     return true;
   } catch (error) {
-    console.log('❌ FAIL:', error.message);
+    console.log('[FAIL]', error.message);
     testResults.failed++;
     return false;
   }
@@ -219,7 +219,7 @@ async function testNoConsoleErrors() {
 // TEST 7: Layout Safety Checks
 // ============================================
 async function testLayoutSafety() {
-  console.log('\n🎨 TEST 7: UI Layout Safety (Price Field Width)');
+  console.log('\nTEST 7: UI Layout Safety (Price Field Width)');
   
   try {
     // Verify price fields are present and numeric
@@ -237,16 +237,16 @@ async function testLayoutSafety() {
       // Verify price field exists and is numeric
       if (firstStock.price !== undefined) {
         assert(typeof firstStock.price === 'number', 'Price must be numeric for layout safety');
-        console.log(`✅ PASS: Price field is numeric (${firstStock.price}) - layout shifts prevented`);
+        console.log(`[PASS] Price field is numeric (${firstStock.price}) - layout shifts prevented`);
       }
     }
 
-    console.log('✅ PASS: Layout safety verified');
+    console.log('[PASS] Layout safety verified');
     testResults.passed++;
     return true;
   } catch (error) {
     // Graceful handling for missing endpoint
-    console.log('⚠️  SKIPPED: Screener endpoint check (requires full setup)');
+    console.log('[SKIPPED] Screener endpoint check (requires full setup)');
     testResults.skipped++;
     return true;
   }
@@ -256,18 +256,18 @@ async function testLayoutSafety() {
 // TEST 8: Fallback Data Structure
 // ============================================
 async function testFallbackDataStructure() {
-  console.log('\n🔄 TEST 8: Fallback Data & Mock Markers');
+  console.log('\nTEST 8: Fallback Data & Mock Markers');
   
   try {
     // This would test that fallback data is properly marked
-    console.log('✅ PASS: Fallback mechanism structure validated');
-    console.log('   - generateMockData() marked with isMock: true ✓');
-    console.log('   - Watchlist fallback includes freshness ✓');
-    console.log('   - Error responses include metadata ✓');
+    console.log('[PASS] Fallback mechanism structure validated');
+    console.log('   - generateMockData() marked with isMock: true [OK]');
+    console.log('   - Watchlist fallback includes freshness [OK]');
+    console.log('   - Error responses include metadata [OK]');
     testResults.passed++;
     return true;
   } catch (error) {
-    console.log('❌ FAIL:', error.message);
+    console.log('[FAIL]', error.message);
     testResults.failed++;
     return false;
   }
@@ -278,20 +278,20 @@ async function testFallbackDataStructure() {
 // ============================================
 async function runAllTests() {
   console.log('========================================');
-  console.log('🧪 FINAL REGRESSION TEST SUITE');
+  console.log('FINAL REGRESSION TEST SUITE');
   console.log('========================================');
   console.log(`Target: ${BASE_URL}`);
   console.log(`Time: ${new Date().toISOString()}`);
 
   try {
     // Wait for server to be ready
-    console.log('\n⏳ Checking server connectivity...');
+    console.log('\n[CONNECTING] Checking server connectivity...');
     let serverReady = false;
     for (let i = 0; i < 3; i++) {
       try {
         await fetch(`${BASE_URL}/api/health`);
         serverReady = true;
-        console.log('✅ Server is ready');
+        console.log('[READY] Server is ready');
         break;
       } catch (_) {
         if (i < 2) {
@@ -302,7 +302,7 @@ async function runAllTests() {
     }
 
     if (!serverReady) {
-      console.log('⚠️  WARNING: Server not responding - some tests will be skipped');
+      console.log('[WARNING] Server not responding - some tests will be skipped');
       console.log('   Make sure backend is running: npm start');
     }
 
@@ -327,18 +327,18 @@ async function runAllTests() {
   }
 
   // Print summary
-  console.log('\n========================================');
-  console.log('📊 TEST RESULTS SUMMARY');
+  console.log('\n========================================'  );
+  console.log('TEST RESULTS SUMMARY');
   console.log('========================================');
-  console.log(`✅ Passed:  ${testResults.passed}`);
-  console.log(`❌ Failed:  ${testResults.failed}`);
-  console.log(`⊘ Skipped: ${testResults.skipped}`);
-  console.log(`📈 Total:   ${testResults.passed + testResults.failed + testResults.skipped}`);
+  console.log(`[PASS] Passed:  ${testResults.passed}`);
+  console.log(`[FAIL] Failed:  ${testResults.failed}`);
+  console.log(`[SKIP] Skipped: ${testResults.skipped}`);
+  console.log(`Total:   ${testResults.passed + testResults.failed + testResults.skipped}`);
   
   if (testResults.failed === 0) {
-    console.log('\n🎉 ALL TESTS PASSED - PRODUCTION READY');
+    console.log('\n[SUCCESS] ALL TESTS PASSED - PRODUCTION READY');
   } else {
-    console.log('\n⚠️  FAILURES DETECTED - FIX BEFORE DEPLOYMENT');
+    console.log('\n[WARNING] FAILURES DETECTED - FIX BEFORE DEPLOYMENT');
   }
   console.log('========================================\n');
 

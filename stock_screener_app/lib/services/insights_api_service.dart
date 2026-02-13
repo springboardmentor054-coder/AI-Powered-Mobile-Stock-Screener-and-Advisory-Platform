@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/stock_insights.dart';
 import '../models/risk_analysis.dart';
+import 'api_config.dart';
 
 class InsightsApiService {
   final String baseUrl;
 
-  InsightsApiService({this.baseUrl = 'http://192.168.1.2:5000/api/insights'});
+  InsightsApiService({String? baseUrl})
+    : baseUrl = baseUrl ?? '${ApiConfig.baseUrl}/api/insights';
 
   /// Get comprehensive stock insights including fundamentals, quarterly performance, and analysis
   Future<StockInsights> getStockInsights(String symbol) async {
@@ -18,7 +20,11 @@ class InsightsApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return StockInsights.fromJson(data);
+        if (data is Map<String, dynamic> &&
+            data['data'] is Map<String, dynamic>) {
+          return StockInsights.fromJson(data['data']);
+        }
+        return StockInsights.fromJson(Map<String, dynamic>.from(data));
       } else if (response.statusCode == 404) {
         throw Exception('Stock not found: $symbol');
       } else {
@@ -39,7 +45,11 @@ class InsightsApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return RiskAnalysis.fromJson(data);
+        if (data is Map<String, dynamic> &&
+            data['data'] is Map<String, dynamic>) {
+          return RiskAnalysis.fromJson(data['data']);
+        }
+        return RiskAnalysis.fromJson(Map<String, dynamic>.from(data));
       } else if (response.statusCode == 404) {
         throw Exception('Stock not found: $symbol');
       } else {
@@ -61,10 +71,17 @@ class InsightsApiService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => QuarterlyFilterResult.fromJson(json)).toList();
+        final List<dynamic> data = _extractList(
+          json.decode(response.body),
+          primaryKey: 'stocks',
+        );
+        return data
+            .map((json) => QuarterlyFilterResult.fromJson(json))
+            .toList();
       } else {
-        throw Exception('Failed to load positive earnings stocks: ${response.statusCode}');
+        throw Exception(
+          'Failed to load positive earnings stocks: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error fetching positive earnings stocks: $e');
@@ -78,15 +95,24 @@ class InsightsApiService {
   }) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/quarterly/revenue-growth?nQuarters=$nQuarters&minGrowth=$minGrowth'),
+        Uri.parse(
+          '$baseUrl/quarterly/revenue-growth?nQuarters=$nQuarters&minGrowth=$minGrowth',
+        ),
         headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => QuarterlyFilterResult.fromJson(json)).toList();
+        final List<dynamic> data = _extractList(
+          json.decode(response.body),
+          primaryKey: 'stocks',
+        );
+        return data
+            .map((json) => QuarterlyFilterResult.fromJson(json))
+            .toList();
       } else {
-        throw Exception('Failed to load revenue growth stocks: ${response.statusCode}');
+        throw Exception(
+          'Failed to load revenue growth stocks: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error fetching revenue growth stocks: $e');
@@ -104,10 +130,17 @@ class InsightsApiService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => QuarterlyFilterResult.fromJson(json)).toList();
+        final List<dynamic> data = _extractList(
+          json.decode(response.body),
+          primaryKey: 'stocks',
+        );
+        return data
+            .map((json) => QuarterlyFilterResult.fromJson(json))
+            .toList();
       } else {
-        throw Exception('Failed to load improving margins stocks: ${response.statusCode}');
+        throw Exception(
+          'Failed to load improving margins stocks: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error fetching improving margins stocks: $e');
@@ -120,15 +153,24 @@ class InsightsApiService {
   }) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/quarterly/consistent-performance?maxVolatility=$maxVolatility'),
+        Uri.parse(
+          '$baseUrl/quarterly/consistent-performance?maxVolatility=$maxVolatility',
+        ),
         headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => QuarterlyFilterResult.fromJson(json)).toList();
+        final List<dynamic> data = _extractList(
+          json.decode(response.body),
+          primaryKey: 'stocks',
+        );
+        return data
+            .map((json) => QuarterlyFilterResult.fromJson(json))
+            .toList();
       } else {
-        throw Exception('Failed to load consistent performance stocks: ${response.statusCode}');
+        throw Exception(
+          'Failed to load consistent performance stocks: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error fetching consistent performance stocks: $e');
@@ -143,15 +185,24 @@ class InsightsApiService {
     try {
       final encodedSector = Uri.encodeComponent(sector);
       final response = await http.get(
-        Uri.parse('$baseUrl/quarterly/sector-outperformers/$encodedSector?nQuarters=$nQuarters'),
+        Uri.parse(
+          '$baseUrl/quarterly/sector-outperformers/$encodedSector?nQuarters=$nQuarters',
+        ),
         headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => QuarterlyFilterResult.fromJson(json)).toList();
+        final List<dynamic> data = _extractList(
+          json.decode(response.body),
+          primaryKey: 'outperformers',
+        );
+        return data
+            .map((json) => QuarterlyFilterResult.fromJson(json))
+            .toList();
       } else {
-        throw Exception('Failed to load sector outperformers: ${response.statusCode}');
+        throw Exception(
+          'Failed to load sector outperformers: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error fetching sector outperformers: $e');
@@ -171,15 +222,38 @@ class InsightsApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return QuarterlyTrend.fromJson(data);
+        if (data is Map<String, dynamic> &&
+            data['data'] is Map<String, dynamic>) {
+          return QuarterlyTrend.fromJson(data['data']);
+        }
+        return QuarterlyTrend.fromJson(Map<String, dynamic>.from(data));
       } else if (response.statusCode == 404) {
         throw Exception('Stock not found: $symbol');
       } else {
-        throw Exception('Failed to load quarterly trend: ${response.statusCode}');
+        throw Exception(
+          'Failed to load quarterly trend: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error fetching quarterly trend: $e');
     }
+  }
+
+  List<dynamic> _extractList(dynamic decoded, {required String primaryKey}) {
+    if (decoded is List<dynamic>) return decoded;
+
+    if (decoded is Map<String, dynamic>) {
+      if (decoded[primaryKey] is List<dynamic>) {
+        return decoded[primaryKey] as List<dynamic>;
+      }
+      final data = decoded['data'];
+      if (data is List<dynamic>) return data;
+      if (data is Map<String, dynamic> && data[primaryKey] is List<dynamic>) {
+        return data[primaryKey] as List<dynamic>;
+      }
+    }
+
+    return const <dynamic>[];
   }
 }
 
@@ -199,16 +273,15 @@ class QuarterlyFilterResult {
     return QuarterlyFilterResult(
       symbol: json['symbol'] ?? '',
       companyName: json['companyName'] ?? json['company_name'] ?? '',
-      metrics: Map<String, dynamic>.from(json)..remove('symbol')..remove('companyName')..remove('company_name'),
+      metrics: Map<String, dynamic>.from(json)
+        ..remove('symbol')
+        ..remove('companyName')
+        ..remove('company_name'),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'symbol': symbol,
-      'companyName': companyName,
-      ...metrics,
-    };
+    return {'symbol': symbol, 'companyName': companyName, ...metrics};
   }
 }
 
@@ -230,7 +303,8 @@ class QuarterlyTrend {
     return QuarterlyTrend(
       symbol: json['symbol'] ?? '',
       companyName: json['companyName'] ?? json['company_name'] ?? '',
-      quarterlyData: (json['quarterlyData'] as List<dynamic>?)
+      quarterlyData:
+          (json['quarterlyData'] as List<dynamic>?)
               ?.map((q) => QuarterlyData.fromJson(q))
               .toList() ??
           [],

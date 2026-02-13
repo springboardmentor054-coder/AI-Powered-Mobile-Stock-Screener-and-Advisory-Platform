@@ -1,135 +1,99 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'alerts_api_service.dart';
+import 'api_config.dart';
+import 'auth_service.dart';
 
+/// Wrapper service for alert operations
 class AlertService {
-  // Use environment variable if provided, otherwise use phone hotspot IP
-  // Run with: flutter run --dart-define=API_BASE_URL=http://10.39.159.30:5000
-  static String get _apiBaseUrl {
-    const env = String.fromEnvironment('API_BASE_URL', defaultValue: '');
-    if (env.isNotEmpty) return env;
-    // Fallback to phone hotspot IP
-    return 'http://10.39.159.30:5000';
-  }
-  
-  String get baseUrl => '$_apiBaseUrl/api/alerts';
+  final AlertsApiService _apiService = AlertsApiService();
 
-  /// Create a new price alert
-  Future<bool> createAlert({
-    required int userId,
-    required String symbol,
-    required String alertType, // 'price_above', 'price_below'
-    required double targetPrice,
+  /// Get all alerts for user
+  Future<List<Map<String, dynamic>>> getAlerts({
+    int? userId,
+    bool unreadOnly = false,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/create'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'userId': userId,
-          'symbol': symbol,
-          'alertType': alertType,
-          'targetPrice': targetPrice,
-          'isActive': true,
-        }),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print('✅ Alert created: ${data['message']}');
-        return true;
-      } else {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Failed to create alert');
-      }
+      final id = userId ?? AuthService.instance.currentUserId ?? 1;
+      return await _apiService.getUserAlerts(id, unreadOnly: unreadOnly);
     } catch (e) {
-      print('❌ Error creating alert: $e');
-      throw Exception('Error creating alert: $e');
-    }
-  }
-
-  /// Get user's alerts
-  Future<List<Map<String, dynamic>>> getAlerts(int userId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/$userId'),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final alerts = data['data'] as List<dynamic>? ?? [];
-        return alerts.cast<Map<String, dynamic>>();
-      } else {
-        throw Exception('Failed to fetch alerts: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ Error fetching alerts: $e');
+      print('Error getting alerts: $e');
       return [];
     }
   }
 
-  /// Update alert status
-  Future<bool> updateAlert(int alertId, bool isActive) async {
+  /// Create a new alert via POST to /api/alerts endpoint
+  Future<bool> createAlert({
+    required int userId,
+    required String symbol,
+    required String alertType,
+    double? targetPrice,
+    double? percentageChange,
+  }) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/$alertId'),
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/api/alerts'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'isActive': isActive}),
-      ).timeout(const Duration(seconds: 30));
+        body: json.encode({
+          'userId': userId,
+          'symbol': symbol.toUpperCase(),
+          'alertType': alertType,
+          'targetPrice': targetPrice,
+          'percentageChange': percentageChange,
+        }),
+      );
 
-      if (response.statusCode == 200) {
-        print('✅ Alert updated');
-        return true;
-      } else {
-        throw Exception('Failed to update alert');
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
       }
+      return false;
     } catch (e) {
-      print('❌ Error updating alert: $e');
-      throw Exception('Error updating alert: $e');
+      print('Error creating alert: $e');
+      return false;
     }
   }
 
-  /// Delete alert
-  Future<bool> deleteAlert(int alertId) async {
+  /// Delete an alert
+  Future<bool> deleteAlert(int alertId, {int? userId}) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/$alertId'),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        print('✅ Alert deleted');
-        return true;
-      } else {
-        throw Exception('Failed to delete alert');
-      }
+      final id = userId ?? AuthService.instance.currentUserId ?? 1;
+      return await _apiService.deleteAlert(alertId, userId: id);
     } catch (e) {
-      print('❌ Error deleting alert: $e');
-      throw Exception('Error deleting alert: $e');
+      print('Error deleting alert: $e');
+      return false;
+    }
+  }
+
+  /// Mark alert as read
+  Future<bool> markAsRead(int alertId, {int? userId}) async {
+    try {
+      final id = userId ?? AuthService.instance.currentUserId ?? 1;
+      return await _apiService.markAsRead(alertId, id);
+    } catch (e) {
+      print('Error marking alert as read: $e');
+      return false;
+    }
+  }
+
+  /// Mark alert as acknowledged
+  Future<bool> markAsAcknowledged(int alertId, {int? userId}) async {
+    try {
+      final id = userId ?? AuthService.instance.currentUserId ?? 1;
+      return await _apiService.markAsAcknowledged(alertId, id);
+    } catch (e) {
+      print('Error acknowledging alert: $e');
+      return false;
     }
   }
 
   /// Get alert statistics
   Future<Map<String, dynamic>> getAlertStats(int userId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/$userId/stats'),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        return {
-          'total': 0,
-          'active': 0,
-          'triggered': 0,
-        };
-      }
+      return await _apiService.getAlertStats(userId);
     } catch (e) {
-      print('❌ Error fetching alert stats: $e');
-      return {
-        'total': 0,
-        'active': 0,
-        'triggered': 0,
-      };
+      print('Error getting alert stats: $e');
+      return {};
     }
   }
 }

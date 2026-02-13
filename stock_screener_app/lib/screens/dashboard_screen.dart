@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
 
 class DashboardScreen extends StatefulWidget {
-  final int userId;
+  final int? userId;
   
-  const DashboardScreen({Key? key, this.userId = 1}) : super(key: key);
+  const DashboardScreen({super.key, this.userId});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -63,8 +64,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
 
     try {
+      final userId = widget.userId ?? AuthService.instance.currentUserId ?? 1;
       final dashboardData = await _apiService.getDashboardData();
-      final portfolio = await _apiService.getPortfolio(widget.userId);
+      final portfolio = await _apiService.getPortfolio(userId);
 
       if (mounted) {
         setState(() {
@@ -76,7 +78,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         if (!silent) _animationController.forward(from: 0);
       }
     } catch (e) {
-      print('📱 Dashboard error: $e');
+      print('Dashboard error: $e');
       if (mounted && !silent) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

@@ -7,7 +7,7 @@ import '../services/api_service.dart';
 class SavedScreenersScreen extends StatefulWidget {
   final int userId;
 
-  const SavedScreenersScreen({Key? key, required this.userId}) : super(key: key);
+  const SavedScreenersScreen({super.key, required this.userId});
 
   @override
   _SavedScreenersScreenState createState() => _SavedScreenersScreenState();
@@ -70,7 +70,7 @@ class _SavedScreenersScreenState extends State<SavedScreenersScreen>
           _isLoading = false;
         });
       }
-      print('🔴 Error loading screeners: $e');
+      print('Error loading screeners: $e');
     }
   }
 
@@ -106,7 +106,7 @@ class _SavedScreenersScreenState extends State<SavedScreenersScreen>
         );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✓ Screener deleted successfully'),
+            content: Text('Screener deleted successfully'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -134,8 +134,8 @@ class _SavedScreenersScreenState extends State<SavedScreenersScreen>
         SnackBar(
           content: Text(
             screener.notificationEnabled
-                ? '🔕 Notifications disabled'
-                : '🔔 Notifications enabled',
+                ? 'Notifications disabled'
+                : 'Notifications enabled',
           ),
           behavior: SnackBarBehavior.floating,
         ),

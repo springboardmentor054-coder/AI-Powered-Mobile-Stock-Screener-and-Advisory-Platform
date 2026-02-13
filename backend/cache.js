@@ -14,14 +14,14 @@ let isConnected = false;
 
 client.on("error", (err) => {
   if (!isConnected) {
-    console.warn("⚠️  Redis not available - caching disabled");
+    console.warn("[CACHE] Redis module not available - caching disabled");
     console.warn("   App will continue without cache");
     isConnected = false;
   }
 });
 
 client.on("connect", () => {
-  console.log("✅ Redis Client Connected");
+  console.log("[CACHE] Redis client connected");
   isConnected = true;
 });
 
@@ -30,7 +30,7 @@ client.on("connect", () => {
   try {
     await client.connect();
   } catch (err) {
-    console.warn("⚠️  Redis not running - caching disabled");
+    console.warn("[CACHE] Redis service unavailable - caching disabled");
     console.warn("   Install Redis or the app will work without caching");
     isConnected = false;
   }

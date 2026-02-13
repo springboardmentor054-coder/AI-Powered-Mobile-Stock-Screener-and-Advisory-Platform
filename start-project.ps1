@@ -77,8 +77,24 @@ switch ($choice) {
     "2" {
         Write-Host ""
         Write-Host "Starting Flutter App..." -ForegroundColor Green
+
+        # Detect a reasonable IPv4 address for this machine to use from phone
+        try {
+            $ip = (Get-NetIPAddress -AddressFamily IPv4 |
+                Where-Object { $_.IPAddress -ne '127.0.0.1' -and $_.IPAddress -notlike '169.254*' } |
+                Select-Object -First 1 -ExpandProperty IPAddress)
+        } catch {
+            $ip = $null
+        }
+
+        if (-not $ip) {
+            Write-Host "Could not auto-detect local IP, defaulting to localhost" -ForegroundColor Yellow
+            $ip = 'localhost'
+        }
+
+        Write-Host "Using API_BASE_URL=http://$ip:5000" -ForegroundColor Green
         Set-Location stock_screener_app
-        flutter run
+        flutter run --dart-define=API_BASE_URL=http://$ip:5000
     }
     "3" {
         Write-Host ""
@@ -88,8 +104,24 @@ switch ($choice) {
         Start-Sleep -Seconds 3
         
         Write-Host "Starting Flutter App..." -ForegroundColor Green
+
+        # Detect a reasonable IPv4 address for this machine to use from phone
+        try {
+            $ip = (Get-NetIPAddress -AddressFamily IPv4 |
+                Where-Object { $_.IPAddress -ne '127.0.0.1' -and $_.IPAddress -notlike '169.254*' } |
+                Select-Object -First 1 -ExpandProperty IPAddress)
+        } catch {
+            $ip = $null
+        }
+
+        if (-not $ip) {
+            Write-Host "Could not auto-detect local IP, defaulting to localhost" -ForegroundColor Yellow
+            $ip = 'localhost'
+        }
+
+        Write-Host "Using API_BASE_URL=http://$ip:5000" -ForegroundColor Green
         Set-Location stock_screener_app
-        flutter run
+        flutter run --dart-define=API_BASE_URL=http://$ip:5000
     }
     "4" {
         Write-Host ""

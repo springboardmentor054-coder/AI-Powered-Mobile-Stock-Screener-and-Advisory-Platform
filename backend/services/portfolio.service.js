@@ -5,7 +5,7 @@
 
 const pool = require("../database");
 const auditService = require("./audit.service");
-const marketDataService = require("./realTimeMarketData.service");
+const finnhubService = require("./finnhub.service");
 
 class PortfolioService {
   /**
@@ -263,8 +263,15 @@ class PortfolioService {
 
       // Fetch real-time prices for all holdings
       const symbols = holdings.map(h => h.symbol);
-      const priceData = await marketDataService.getBulkRealtimeData(symbols);
-      const priceMap = new Map(priceData.map(p => [p.symbol, p]));
+      const priceData = await finnhubService.getQuotes(symbols);
+      
+      // Create price map - strip .NS suffix for matching with database symbols
+      const priceMap = new Map(
+        priceData.map(p => {
+          const baseSymbol = p.symbol.replace(/\.(NS|BO)$/, ''); // Remove exchange suffix
+          return [baseSymbol, p];
+        })
+      );
       
       console.log(`[Portfolio] Fetched prices for ${priceData.length}/${symbols.length} stocks`);
 
@@ -276,7 +283,7 @@ class PortfolioService {
         const quantity = parseFloat(holding.quantity);
         const avgPrice = parseFloat(holding.avg_price);
         const prices = priceMap.get(holding.symbol);
-        const currentPrice = prices?.currentPrice || avgPrice; // Fallback to avgPrice if no real-time data
+        const currentPrice = prices?.current_price || avgPrice; // Fallback to avgPrice if no real-time data
 
         const investment = quantity * avgPrice;
         const currentValue = quantity * currentPrice;
@@ -295,8 +302,11 @@ class PortfolioService {
           current_value: parseFloat(currentValue.toFixed(2)),
           gain_loss: parseFloat(gainLoss.toFixed(2)),
           gain_loss_percent: parseFloat(gainLossPercent),
-          last_price_update: prices?.lastUpdate,
-          price_source: prices?.isMock ? 'MOCK' : 'YAHOO_FINANCE'
+          last_price_update: prices?.timestamp,
+          price_source: prices?.data_source || 'UNKNOWN',
+          is_real_data: prices?.is_real_data || false,
+          is_delayed: prices?.is_delayed || false,
+          delay_minutes: prices?.delay_minutes || 0
         };
       });
 

@@ -1,21 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'api_config.dart';
 
 class SuggestionsService {
-  // Use platform-specific base URL
-  static String get _apiBaseUrl {
-    if (defaultTargetPlatform == TargetPlatform.windows) {
-      return 'http://localhost:5000';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000';
-    }
-    if (kIsWeb) return 'http://localhost:5000';
-    return 'http://localhost:5000';
-  }
-
-  String get baseUrl => '$_apiBaseUrl/api/suggestions';
+  String get baseUrl => '${ApiConfig.baseUrl}/api/suggestions';
 
   /// Get query suggestions based on input
   Future<Map<String, dynamic>> getSuggestions(String query) async {
@@ -29,18 +17,10 @@ class SuggestionsService {
           return Map<String, dynamic>.from(data['data']);
         }
       }
-      return {
-        'suggestions': [],
-        'sectors': [],
-        'symbols': [],
-      };
+      return {'suggestions': [], 'sectors': [], 'symbols': []};
     } catch (e) {
-      print('❌ Error fetching suggestions: $e');
-      return {
-        'suggestions': [],
-        'sectors': [],
-        'symbols': [],
-      };
+      print('Error fetching suggestions: $e');
+      return {'suggestions': [], 'sectors': [], 'symbols': []};
     }
   }
 
@@ -58,7 +38,7 @@ class SuggestionsService {
       }
       return [];
     } catch (e) {
-      print('❌ Error fetching sectors: $e');
+      print('Error fetching sectors: $e');
       return [];
     }
   }
@@ -70,7 +50,7 @@ class SuggestionsService {
       if (search != null && search.isNotEmpty) {
         url += '?search=${Uri.encodeComponent(search)}';
       }
-      
+
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
@@ -82,7 +62,7 @@ class SuggestionsService {
       }
       return [];
     } catch (e) {
-      print('❌ Error fetching symbols: $e');
+      print('Error fetching symbols: $e');
       return [];
     }
   }

@@ -6,16 +6,15 @@ import '../services/api_service.dart';
 class AlertsScreen extends StatefulWidget {
   final int userId;
 
-  const AlertsScreen({
-    super.key,
-    required this.userId,
-  });
+  const AlertsScreen({super.key, required this.userId});
 
   @override
   State<AlertsScreen> createState() => _AlertsScreenState();
 }
 
-class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderStateMixin {
+class _AlertsScreenState extends State<AlertsScreen>
+    with SingleTickerProviderStateMixin {
+  final ApiService _apiService = ApiService();
   bool _isLoading = true;
   List<dynamic> _alerts = [];
   late TabController _tabController;
@@ -37,8 +36,8 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
     setState(() => _isLoading = true);
 
     try {
-      final alerts = await ApiService().getAlerts(widget.userId);
-      
+      final alerts = await _apiService.getAlerts(widget.userId);
+
       if (mounted) {
         setState(() {
           _alerts = alerts;
@@ -61,8 +60,10 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
     }
   }
 
-  List<dynamic> get _unreadAlerts => _alerts.where((a) => a['isRead'] == false).toList();
-  List<dynamic> get _readAlerts => _alerts.where((a) => a['isRead'] == true).toList();
+  List<dynamic> get _unreadAlerts =>
+      _alerts.where((a) => a['isRead'] == false).toList();
+  List<dynamic> get _readAlerts =>
+      _alerts.where((a) => a['isRead'] == true).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +85,7 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
                     ),
                     child: const Icon(
                       Icons.notifications_rounded,
-                      color: PremiumColors.deepDark,
+                      color: PremiumColors.textOnAccent,
                       size: PremiumUI.iconL,
                     ),
                   ),
@@ -93,10 +94,7 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Alerts',
-                          style: PremiumTypography.h1,
-                        ),
+                        Text('Alerts', style: PremiumTypography.h1),
                         const SizedBox(height: 4),
                         Text(
                           '${_unreadAlerts.length} unread',
@@ -108,6 +106,11 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
                     ),
                   ),
                   IconButton(
+                    icon: const Icon(Icons.done_all_rounded),
+                    onPressed: _markAllAsRead,
+                    tooltip: 'Mark all read',
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.add_rounded),
                     onPressed: _showCreateAlertDialog,
                   ),
@@ -117,7 +120,9 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
 
             // Tabs
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: PremiumUI.spacingL),
+              margin: const EdgeInsets.symmetric(
+                horizontal: PremiumUI.spacingL,
+              ),
               decoration: BoxDecoration(
                 color: PremiumColors.surfaceBg,
                 borderRadius: BorderRadius.circular(PremiumUI.radiusL),
@@ -128,9 +133,11 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
                   color: PremiumColors.neonTeal,
                   borderRadius: BorderRadius.circular(PremiumUI.radiusL),
                 ),
-                labelColor: PremiumColors.deepDark,
+                labelColor: PremiumColors.textOnAccent,
                 unselectedLabelColor: PremiumColors.textMuted,
-                labelStyle: PremiumTypography.body2.copyWith(fontWeight: FontWeight.w600),
+                labelStyle: PremiumTypography.body2.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
                 dividerColor: Colors.transparent,
                 tabs: [
                   Tab(text: 'Unread (${_unreadAlerts.length})'),
@@ -177,7 +184,8 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: PremiumUI.spacingL),
         itemCount: alerts.length,
-        separatorBuilder: (context, index) => const SizedBox(height: PremiumUI.spacingM),
+        separatorBuilder: (context, index) =>
+            const SizedBox(height: PremiumUI.spacingM),
         itemBuilder: (context, index) => _buildAlertCard(alerts[index]),
       ),
     );
@@ -186,11 +194,12 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
   Widget _buildAlertCard(dynamic alert) {
     final severity = alert['severity']?.toString() ?? 'INFO';
     final isRead = alert['isRead'] ?? false;
-    final createdAt = DateTime.tryParse(alert['createdAt'] ?? '') ?? DateTime.now();
-    
+    final createdAt =
+        DateTime.tryParse(alert['createdAt'] ?? '') ?? DateTime.now();
+
     Color severityColor;
     IconData severityIcon;
-    
+
     switch (severity) {
       case 'CRITICAL':
       case 'HIGH':
@@ -233,7 +242,7 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
                 Row(
                   children: [
                     Text(
-                      alert['symbol']?.toString() ?? 'N/A',
+                      alert['symbol']?.toString() ?? 'NA',
                       style: PremiumTypography.body1.copyWith(
                         fontWeight: FontWeight.w600,
                         fontFamily: PremiumTypography.numericFont,
@@ -272,14 +281,11 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
                 ),
                 const SizedBox(height: PremiumUI.spacingS),
                 Text(
-                  alert['message']?.toString() ?? 'No message',
+                  alert['message']?.toString() ?? 'Not Available',
                   style: PremiumTypography.body2,
                 ),
                 const SizedBox(height: PremiumUI.spacingS),
-                Text(
-                  _formatTime(createdAt),
-                  style: PremiumTypography.caption,
-                ),
+                Text(_formatTime(createdAt), style: PremiumTypography.caption),
               ],
             ),
           ),
@@ -292,7 +298,8 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
     return ListView.separated(
       padding: const EdgeInsets.all(PremiumUI.spacingL),
       itemCount: 5,
-      separatorBuilder: (context, index) => const SizedBox(height: PremiumUI.spacingM),
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: PremiumUI.spacingM),
       itemBuilder: (context, index) => const ShimmerLoading(
         child: PremiumCard(
           padding: EdgeInsets.all(PremiumUI.spacingL),
@@ -301,7 +308,10 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
             children: [
               Row(
                 children: [
-                  CircleAvatar(radius: 20, backgroundColor: PremiumColors.surfaceBg),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: PremiumColors.surfaceBg,
+                  ),
                   SizedBox(width: PremiumUI.spacingM),
                   Expanded(
                     child: Column(
@@ -330,63 +340,165 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
     );
   }
 
-  void _markAsRead(dynamic alert) {
-    setState(() {
-      alert['isRead'] = true;
-    });
-    // TODO: Call API to mark as read
+  Future<void> _markAsRead(dynamic alert) async {
+    if (alert['isRead'] == true) return;
+    final alertId = _toInt(alert['id']);
+    if (alertId == null) return;
+
+    final ok = await _apiService.markAlertAsRead(alertId, widget.userId);
+    if (!mounted) return;
+
+    if (ok) {
+      setState(() {
+        alert['isRead'] = true;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to mark alert as read.'),
+          backgroundColor: PremiumColors.loss,
+        ),
+      );
+    }
+  }
+
+  Future<void> _markAllAsRead() async {
+    final ok = await _apiService.markAllAlertsAsRead(widget.userId);
+    if (!mounted) return;
+    if (ok) {
+      _loadAlerts();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All alerts marked as read.'),
+          backgroundColor: PremiumColors.profit,
+        ),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Could not mark all alerts as read.'),
+        backgroundColor: PremiumColors.loss,
+      ),
+    );
   }
 
   void _showCreateAlertDialog() {
+    final symbolController = TextEditingController();
+    final targetController = TextEditingController();
+    String alertType = 'price_above';
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: PremiumColors.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(PremiumUI.radiusXL),
-        ),
-        title: Text(
-          'Create Alert',
-          style: PremiumTypography.h3,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              style: PremiumTypography.body1,
-              decoration: const InputDecoration(
-                labelText: 'Symbol',
-                hintText: 'e.g., TCS',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: PremiumColors.cardBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(PremiumUI.radiusXL),
+          ),
+          title: Text('Create Alert', style: PremiumTypography.h3),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: symbolController,
+                style: PremiumTypography.body1,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Symbol',
+                  hintText: 'e.g., TCS',
+                ),
+              ),
+              const SizedBox(height: PremiumUI.spacingM),
+              DropdownButtonFormField<String>(
+                value: alertType,
+                decoration: const InputDecoration(labelText: 'Condition'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'price_above',
+                    child: Text('Price above target'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'price_below',
+                    child: Text('Price below target'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setModalState(() => alertType = value);
+                  }
+                },
+              ),
+              const SizedBox(height: PremiumUI.spacingM),
+              TextField(
+                controller: targetController,
+                style: PremiumTypography.body1,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Target Price',
+                  hintText: 'e.g., 3500',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: PremiumTypography.body2.copyWith(
+                  color: PremiumColors.textMuted,
+                ),
               ),
             ),
-            const SizedBox(height: PremiumUI.spacingM),
-            TextField(
-              style: PremiumTypography.body1,
-              decoration: const InputDecoration(
-                labelText: 'Condition',
-                hintText: 'e.g., Price above 3500',
-              ),
+            ElevatedButton(
+              onPressed: () async {
+                final symbol = symbolController.text.trim().toUpperCase();
+                final targetPrice = double.tryParse(
+                  targetController.text.trim(),
+                );
+                if (symbol.isEmpty || targetPrice == null || targetPrice <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Enter valid symbol and target price.'),
+                      backgroundColor: PremiumColors.loss,
+                    ),
+                  );
+                  return;
+                }
+
+                final created = await _apiService.createAlert(
+                  userId: widget.userId,
+                  symbol: symbol,
+                  alertType: alertType,
+                  targetPrice: targetPrice,
+                );
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                if (created) {
+                  _loadAlerts();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Alert created successfully.'),
+                      backgroundColor: PremiumColors.profit,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Could not create alert.'),
+                      backgroundColor: PremiumColors.loss,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Create'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: PremiumTypography.body2.copyWith(
-                color: PremiumColors.textMuted,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Create alert via API
-            },
-            child: const Text('Create'),
-          ),
-        ],
       ),
     );
   }
@@ -404,5 +516,11 @@ class _AlertsScreenState extends State<AlertsScreen> with SingleTickerProviderSt
     } else {
       return '${time.day}/${time.month}/${time.year}';
     }
+  }
+
+  int? _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

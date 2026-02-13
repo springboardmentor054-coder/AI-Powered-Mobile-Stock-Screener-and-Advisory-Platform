@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:math' as math;
 import '../utils/colors.dart';
 import '../services/watchlist_api_service.dart';
+import '../services/auth_service.dart';
 import '../models/stock_model.dart';
 import 'stock_detail_screen.dart';
 import 'add_to_watchlist_dialog.dart';
@@ -11,22 +12,19 @@ class ResultScreen extends StatefulWidget {
   final List<dynamic> results;
   final String query;
 
-  const ResultScreen({
-    super.key,
-    required this.results,
-    required this.query,
-  });
+  const ResultScreen({super.key, required this.results, required this.query});
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
 }
 
-class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderStateMixin {
+class _ResultScreenState extends State<ResultScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   String _sortBy = 'market_cap';
   bool _sortAscending = false;
   final WatchlistApiService _watchlistService = WatchlistApiService();
-  final int _userId = 1; // Default user ID
+  int get _userId => AuthService.instance.currentUserId ?? 1;
 
   @override
   void initState() {
@@ -75,11 +73,11 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         .map((s) => _parseDouble(s['pe_ratio']))
         .where((v) => v > 0)
         .toList();
-    
+
     final avgPE = peRatios.isEmpty
         ? 0.0
         : peRatios.reduce((a, b) => a + b) / peRatios.length;
-    
+
     final minPE = peRatios.isEmpty ? 0.0 : peRatios.reduce(math.min);
     final maxPE = peRatios.isEmpty ? 0.0 : peRatios.reduce(math.max);
 
@@ -89,11 +87,11 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         .map((s) => _parseDouble(s['market_cap']))
         .where((v) => v > 0)
         .toList();
-    
+
     final totalMarketCap = marketCaps.isEmpty
         ? 0.0
         : marketCaps.reduce((a, b) => a + b);
-    
+
     final avgMarketCap = marketCaps.isEmpty
         ? 0.0
         : totalMarketCap / marketCaps.length;
@@ -101,7 +99,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     // Sector distribution
     final sectors = <String, int>{};
     for (var stock in widget.results) {
-      final sector = stock['sector'] as String? ?? 'Unknown';
+      final sector = _displaySector(stock['sector']) ?? 'Unclassified';
       sectors[sector] = (sectors[sector] ?? 0) + 1;
     }
 
@@ -178,16 +176,15 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                   children: [
                     Text(
                       'Search Results',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Text(
                       '"${widget.query}"',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade600,
-                            fontStyle: FontStyle.italic,
-                          ),
+                        color: Colors.grey.shade600,
+                        fontStyle: FontStyle.italic,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -195,7 +192,10 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(20),
@@ -270,13 +270,16 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     );
   }
 
-  List<Widget> _buildSectorBars(Map<String, int> sectors, ColorScheme colorScheme) {
+  List<Widget> _buildSectorBars(
+    Map<String, int> sectors,
+    ColorScheme colorScheme,
+  ) {
     if (sectors.isEmpty) return [const Text('No sector data')];
-    
+
     final total = sectors.values.reduce((a, b) => a + b);
     final sortedSectors = sectors.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
+
     final colors = [
       Colors.blue,
       Colors.green,
@@ -284,13 +287,13 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       Colors.purple,
       Colors.red,
     ];
-    
+
     return sortedSectors.asMap().entries.map((entry) {
       final index = entry.key;
       final sector = entry.value;
       final percentage = (sector.value / total * 100);
       final color = colors[index % colors.length];
-      
+
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Column(
@@ -392,7 +395,12 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
 
   Widget _buildResultsList() {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Extra bottom padding
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        100,
+      ), // Extra bottom padding
       itemCount: _sortedResults.length,
       itemBuilder: (context, index) {
         return FadeTransition(
@@ -415,14 +423,14 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   Widget _buildStockCard(dynamic stock, int index) {
     final symbol = stock['symbol'] ?? 'N/A';
     final name = stock['name'] ?? 'Unknown';
-    final sector = stock['sector'] ?? 'N/A';
+    final sector = _displaySector(stock['sector']);
     final peRatio = _parseDouble(stock['pe_ratio']);
     final pegRatio = _parseDouble(stock['peg_ratio']);
     final debtToFcf = _parseDouble(stock['debt_to_fcf']);
     final marketCap = _parseDouble(stock['market_cap']);
     final revenueGrowth = _parseDouble(stock['revenue_growth']);
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     final stockModel = Stock.fromJson(stock);
 
     return Container(
@@ -431,10 +439,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            AppColors.surfaceVariant.withOpacity(0.3),
-          ],
+          colors: [Colors.white, AppColors.surfaceVariant.withOpacity(0.3)],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -505,19 +510,24 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              FaIcon(FontAwesomeIcons.building, size: 12, color: Colors.grey.shade600),
-                              const SizedBox(width: 4),
-                              Text(
-                                sector,
-                                style: TextStyle(
-                                  fontSize: 13,
+                          if (sector != null)
+                            Row(
+                              children: [
+                                FaIcon(
+                                  FontAwesomeIcons.building,
+                                  size: 12,
                                   color: Colors.grey.shade600,
                                 ),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  sector,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -534,7 +544,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                           builder: (context) => AddToWatchlistDialog(
                             symbol: symbol,
                             companyName: name,
-                            currentPrice: _parseDouble(stock['current_price'] ?? stock['price'] ?? 0),
+                            currentPrice: _parseDouble(
+                              stock['current_price'] ?? stock['price'] ?? 0,
+                            ),
                             userId: _userId,
                           ),
                         ).then((result) {
@@ -546,52 +558,62 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                     ),
                     if (false) // Placeholder to maintain structure
                       FutureBuilder<bool>(
-                      future: _watchlistService.isInWatchlist(_userId, symbol),
-                      builder: (context, snapshot) {
-                        final isInWatchlist = snapshot.data ?? false;
-                        return IconButton(
-                          icon: Icon(
-                            isInWatchlist ? Icons.bookmark : Icons.bookmark_border,
-                            color: isInWatchlist ? Color(0xFF3B82F6) : Colors.grey,
-                            size: 24,
-                          ),
-                          onPressed: () async {
-                            try {
-                              final newState = await _watchlistService.toggleWatchlist(_userId, symbol);
-                              setState(() {}); // Refresh UI
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      newState
-                                          ? '✅ Added $symbol to watchlist'
-                                          : '❌ Removed $symbol from watchlist',
+                        future: _watchlistService.isInWatchlist(
+                          _userId,
+                          symbol,
+                        ),
+                        builder: (context, snapshot) {
+                          final isInWatchlist = snapshot.data ?? false;
+                          return IconButton(
+                            icon: Icon(
+                              isInWatchlist
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              color: isInWatchlist
+                                  ? Color(0xFF3B82F6)
+                                  : Colors.grey,
+                              size: 24,
+                            ),
+                            onPressed: () async {
+                              try {
+                                final newState = await _watchlistService
+                                    .toggleWatchlist(_userId, symbol);
+                                setState(() {}); // Refresh UI
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        newState
+                                            ? 'Added $symbol to watchlist'
+                                            : 'Removed $symbol from watchlist',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                      backgroundColor: newState
+                                          ? Colors.green
+                                          : Colors.orange,
                                     ),
-                                    duration: const Duration(seconds: 2),
-                                    behavior: SnackBarBehavior.floating,
-                                    backgroundColor: newState ? Colors.green : Colors.orange,
-                                  ),
-                                );
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: ${e.toString()}'),
+                                      backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
                               }
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error: ${e.toString()}'),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                        );
-                      },
-                    ),
+                            },
+                          );
+                        },
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Metrics Grid
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -613,14 +635,18 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                           Expanded(
                             child: _buildMetricItem(
                               'PEG Ratio',
-                              pegRatio > 0 ? pegRatio.toStringAsFixed(2) : 'N/A',
+                              pegRatio > 0
+                                  ? pegRatio.toStringAsFixed(2)
+                                  : 'N/A',
                               Icons.trending_up,
                             ),
                           ),
                           Expanded(
                             child: _buildMetricItem(
                               'Debt/FCF',
-                              debtToFcf > 0 ? debtToFcf.toStringAsFixed(2) : 'N/A',
+                              debtToFcf > 0
+                                  ? debtToFcf.toStringAsFixed(2)
+                                  : 'N/A',
                               Icons.account_balance,
                             ),
                           ),
@@ -671,10 +697,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             Flexible(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -683,10 +706,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -713,17 +733,14 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
           const SizedBox(height: 24),
           Text(
             'No stocks found',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Text(
             'Try adjusting your search criteria',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 8),
           Text(
@@ -742,7 +759,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   String _formatMarketCap(dynamic marketCap) {
     if (marketCap == null) return 'N/A';
 
-    final value = marketCap is num ? marketCap : double.tryParse(marketCap.toString());
+    final value = marketCap is num
+        ? marketCap
+        : double.tryParse(marketCap.toString());
     if (value == null) return 'N/A';
 
     if (value >= 1e12) {
@@ -754,5 +773,21 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     } else {
       return '\$${value.toStringAsFixed(0)}';
     }
+  }
+
+  String? _displaySector(dynamic value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) return null;
+    final normalized = raw.toLowerCase();
+    if (normalized == 'unknown' ||
+        normalized == 'n/a' ||
+        normalized == 'na' ||
+        normalized == 'null' ||
+        normalized == 'none' ||
+        normalized == 'unspecified' ||
+        normalized == 'not available') {
+      return null;
+    }
+    return raw;
   }
 }

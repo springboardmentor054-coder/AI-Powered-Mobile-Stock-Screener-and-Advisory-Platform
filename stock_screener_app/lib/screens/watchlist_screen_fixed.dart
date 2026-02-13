@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/watchlist_api_service.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../models/stock_model.dart';
 import 'stock_detail_screen.dart';
 
@@ -21,7 +22,7 @@ class _WatchlistScreenFixedState extends State<WatchlistScreenFixed> {
   
   final WatchlistApiService _watchlistService = WatchlistApiService();
   final ApiService _apiService = ApiService();
-  final int _userId = 1;
+  int get _userId => AuthService.instance.currentUserId ?? 1;
 
   @override
   void initState() {
@@ -133,7 +134,7 @@ class _WatchlistScreenFixedState extends State<WatchlistScreenFixed> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('📊 My Watchlist'),
+        title: const Text('My Watchlist'),
         elevation: 0,
         actions: [
           if (_watchlist.isNotEmpty)

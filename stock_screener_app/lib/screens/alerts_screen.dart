@@ -7,7 +7,7 @@ import 'watchlist_screen.dart';
 class AlertsScreen extends StatefulWidget {
   final int userId;
 
-  const AlertsScreen({Key? key, required this.userId}) : super(key: key);
+  const AlertsScreen({super.key, required this.userId});
 
   @override
   _AlertsScreenState createState() => _AlertsScreenState();
@@ -81,7 +81,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🔔 Alerts & Watchlist'),
+        title: const Text('Alerts & Watchlist'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

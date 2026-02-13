@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/api_service.dart';
+import '../services/api_config.dart';
 import 'result_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -10,7 +11,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _queryController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
@@ -19,12 +21,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late Animation<double> _fadeAnimation;
 
   final List<Map<String, dynamic>> _popularScreeners = [
-    {'title': 'IT stocks with PE below 25', 'icon': Icons.computer, 'color': Color(0xFF3B82F6)},
-    {'title': 'Finance stocks with PE below 20', 'icon': Icons.account_balance, 'color': Color(0xFF10B981)},
-    {'title': 'Healthcare low debt stocks', 'icon': Icons.local_hospital, 'color': Color(0xFFEF4444)},
-    {'title': 'High growth tech stocks', 'icon': Icons.trending_up, 'color': Color(0xFF8B5CF6)},
+    {
+      'title': 'IT stocks with PE below 25',
+      'icon': Icons.computer,
+      'color': Color(0xFF3B82F6),
+    },
+    {
+      'title': 'Finance stocks with PE below 20',
+      'icon': Icons.account_balance,
+      'color': Color(0xFF10B981),
+    },
+    {
+      'title': 'Healthcare low debt stocks',
+      'icon': Icons.local_hospital,
+      'color': Color(0xFFEF4444),
+    },
+    {
+      'title': 'High growth tech stocks',
+      'icon': Icons.trending_up,
+      'color': Color(0xFF8B5CF6),
+    },
   ];
-  
+
   final List<String> _quickSearches = [
     'Value Stocks',
     'High PE Ratio',
@@ -50,26 +68,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _checkServerHealth() async {
-    print('🔄 Starting health check...');
+    print('Starting health check...');
     try {
       final isHealthy = await ApiService().checkHealth();
-      print('📡 Health check result: $isHealthy');
+      print('Health check result: $isHealthy');
       if (mounted) {
         setState(() {
           _isServerHealthy = isHealthy;
           if (!isHealthy) {
-            _errorMessage = 'Backend server is offline. Please start the server.';
+            _errorMessage =
+                'Backend server is offline. ${ApiConfig.physicalDeviceHint}';
           } else {
             _errorMessage = null; // Clear error when healthy
           }
         });
       }
     } catch (e) {
-      print('⚠️ Health check exception: $e');
+      print('Health check exception: $e');
       if (mounted) {
         setState(() {
           _isServerHealthy = false;
-          _errorMessage = 'Cannot connect to backend server: $e';
+          _errorMessage =
+              'Cannot connect to backend server: $e. ${ApiConfig.physicalDeviceHint}';
         });
       }
     }
@@ -105,10 +125,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ResultScreen(
-            results: results,
-            query: query,
-          ),
+          builder: (context) => ResultScreen(results: results, query: query),
         ),
       );
     } catch (e) {
@@ -143,11 +160,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF60A5FA),
-              Color(0xFF3B82F6),
-              Color(0xFF2563EB),
-            ],
+            colors: [Color(0xFF60A5FA), Color(0xFF3B82F6), Color(0xFF2563EB)],
           ),
         ),
         child: SafeArea(
@@ -205,18 +218,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       // Server Status Indicator (with tap to refresh)
                       GestureDetector(
                         onTap: () {
-                          print('🔄 Manual refresh triggered');
+                          print('Manual refresh triggered');
                           _checkServerHealth();
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: _isServerHealthy
                                 ? Colors.green.withValues(alpha: 0.2)
                                 : Colors.red.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              color: _isServerHealthy
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444),
                               width: 1.5,
                             ),
                           ),
@@ -227,7 +245,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                  color: _isServerHealthy
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFEF4444),
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -235,7 +255,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               Text(
                                 _isServerHealthy ? 'Online' : 'Offline',
                                 style: TextStyle(
-                                  color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                  color: _isServerHealthy
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFEF4444),
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -244,7 +266,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               Icon(
                                 Icons.refresh,
                                 size: 14,
-                                color: _isServerHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                color: _isServerHealthy
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFEF4444),
                               ),
                             ],
                           ),
@@ -272,16 +296,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           // Search Section
                           Text(
                             'Search Stocks',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Enter your query in natural language',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey.shade600,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade600),
                           ),
                           const SizedBox(height: 20),
 
@@ -301,7 +323,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             child: TextField(
                               controller: _queryController,
                               decoration: InputDecoration(
-                                hintText: 'e.g., Show IT stocks with PE below 25',
+                                hintText:
+                                    'e.g., Show IT stocks with PE below 25',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide.none,
@@ -350,7 +373,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     width: 24,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
                                     ),
                                   )
                                 : const Row(
@@ -381,12 +406,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red.shade700,
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       _errorMessage!,
-                                      style: TextStyle(color: Colors.red.shade700),
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -422,9 +452,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: colorScheme.outline.withOpacity(0.2),
-            ),
+            border: Border.all(color: colorScheme.outline.withOpacity(0.2)),
           ),
           child: Row(
             children: [
@@ -461,9 +489,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       children: [
         Text(
           'Features',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Row(

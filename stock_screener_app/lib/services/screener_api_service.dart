@@ -1,22 +1,10 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import '../models/saved_screener.dart';
+import 'api_config.dart';
 
 class ScreenerApiService {
-  // Use platform-specific base URL (same logic as ApiService)
-  static String get _apiBaseUrl {
-    if (defaultTargetPlatform == TargetPlatform.windows) {
-      return 'http://localhost:5000';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000';
-    }
-    if (kIsWeb) return 'http://localhost:5000';
-    return 'http://localhost:5000';
-  }
-
-  String get baseUrl => '$_apiBaseUrl/api/screeners';
+  String get baseUrl => '${ApiConfig.baseUrl}/api/screeners';
 
   /// Save a new screener
   Future<SavedScreener> saveScreener({
@@ -27,9 +15,10 @@ class ScreenerApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/$userId'),
+        Uri.parse(baseUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
+          'userId': userId,
           'name': name,
           'dslQuery': dslQuery,
           'notificationEnabled': notificationEnabled,
@@ -37,11 +26,17 @@ class ScreenerApiService {
       );
 
       if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        return SavedScreener.fromJson(data);
+        final responseData = json.decode(response.body);
+        if (responseData is Map<String, dynamic> &&
+            responseData['data'] != null) {
+          return SavedScreener.fromJson(responseData['data']);
+        }
+        return SavedScreener.fromJson(responseData);
       } else if (response.statusCode == 400) {
         final error = json.decode(response.body);
-        throw Exception('Invalid input: ${error['errors']?[0]?['msg'] ?? 'Unknown error'}');
+        throw Exception(
+          'Invalid input: ${error['errors']?[0]?['msg'] ?? error['message'] ?? 'Unknown error'}',
+        );
       } else {
         throw Exception('Failed to save screener: ${response.statusCode}');
       }
@@ -65,19 +60,23 @@ class ScreenerApiService {
           final data = responseData['data'];
           if (data is Map<String, dynamic> && data['screeners'] is List) {
             final List<dynamic> screeners = data['screeners'];
-            return screeners.map((json) => SavedScreener.fromJson(json)).toList();
+            return screeners
+                .map((json) => SavedScreener.fromJson(json))
+                .toList();
           }
         }
         // Fallback for direct array response
         if (responseData is List) {
-          return responseData.map((json) => SavedScreener.fromJson(json)).toList();
+          return responseData
+              .map((json) => SavedScreener.fromJson(json))
+              .toList();
         }
         throw Exception('Unexpected response format');
       } else {
         throw Exception('Failed to load screeners: ${response.statusCode}');
       }
     } catch (e) {
-      print('🔴 Error fetching screeners: $e');
+      print('Error fetching screeners: $e');
       throw Exception('Error fetching screeners: $e');
     }
   }
@@ -93,7 +92,8 @@ class ScreenerApiService {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         // Handle wrapped response: {success: true, data: {...}}
-        if (responseData is Map<String, dynamic> && responseData['data'] != null) {
+        if (responseData is Map<String, dynamic> &&
+            responseData['data'] != null) {
           return ScreenerStats.fromJson(responseData['data']);
         }
         return ScreenerStats.fromJson(responseData);
@@ -101,7 +101,7 @@ class ScreenerApiService {
         throw Exception('Failed to load stats: ${response.statusCode}');
       }
     } catch (e) {
-      print('🔴 Error fetching stats: $e');
+      print('Error fetching stats: $e');
       throw Exception('Error fetching stats: $e');
     }
   }
@@ -120,7 +120,8 @@ class ScreenerApiService {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         // Handle wrapped response: {success: true, data: {...}}
-        if (responseData is Map<String, dynamic> && responseData['data'] != null) {
+        if (responseData is Map<String, dynamic> &&
+            responseData['data'] != null) {
           return SavedScreener.fromJson(responseData['data']);
         }
         return SavedScreener.fromJson(responseData);
@@ -130,7 +131,7 @@ class ScreenerApiService {
         throw Exception('Failed to load screener: ${response.statusCode}');
       }
     } catch (e) {
-      print('🔴 Error fetching screener: $e');
+      print('Error fetching screener: $e');
       throw Exception('Error fetching screener: $e');
     }
   }
@@ -148,7 +149,9 @@ class ScreenerApiService {
       final updates = <String, dynamic>{};
       if (name != null) updates['name'] = name;
       if (dslQuery != null) updates['dslQuery'] = dslQuery;
-      if (notificationEnabled != null) updates['notificationEnabled'] = notificationEnabled;
+      if (notificationEnabled != null) {
+        updates['notificationEnabled'] = notificationEnabled;
+      }
       if (active != null) updates['active'] = active;
 
       final response = await http.patch(
@@ -210,7 +213,9 @@ class ScreenerApiService {
         if (response.statusCode == 404) {
           throw Exception('Screener not found');
         } else {
-          throw Exception('Failed to toggle notifications: ${response.statusCode}');
+          throw Exception(
+            'Failed to toggle notifications: ${response.statusCode}',
+          );
         }
       }
     } catch (e) {

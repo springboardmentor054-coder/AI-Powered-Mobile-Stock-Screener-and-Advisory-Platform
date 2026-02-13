@@ -155,7 +155,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('📊 My Watchlist'),
+        title: const Text('My Watchlist'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

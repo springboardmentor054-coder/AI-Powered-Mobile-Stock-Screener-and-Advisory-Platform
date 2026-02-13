@@ -6,7 +6,7 @@ import '../models/risk_analysis.dart';
 class StockInsightsScreen extends StatefulWidget {
   final String symbol;
 
-  const StockInsightsScreen({Key? key, required this.symbol}) : super(key: key);
+  const StockInsightsScreen({super.key, required this.symbol});
 
   @override
   _StockInsightsScreenState createState() => _StockInsightsScreenState();
@@ -76,8 +76,8 @@ class _StockInsightsScreenState extends State<StockInsightsScreen>
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
         onPressed: _loadData,
-        child: const Icon(Icons.refresh),
         backgroundColor: Colors.indigo,
+        child: const Icon(Icons.refresh),
       ),
     );
   }
@@ -279,7 +279,7 @@ class _StockInsightsScreenState extends State<StockInsightsScreen>
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('✓ ', style: TextStyle(color: Colors.green, fontSize: 18)),
+                      const Text('', style: TextStyle(color: Colors.green, fontSize: 18)),
                       Expanded(
                         child: Text(highlight, style: const TextStyle(fontSize: 14)),
                       ),
@@ -320,7 +320,7 @@ class _StockInsightsScreenState extends State<StockInsightsScreen>
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('⚠ ', style: TextStyle(color: Colors.orange, fontSize: 18)),
+                      const Icon(Icons.warning_amber, color: Colors.orange, size: 18),
                       Expanded(
                         child: Text(risk, style: const TextStyle(fontSize: 14)),
                       ),

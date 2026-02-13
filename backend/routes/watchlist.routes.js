@@ -8,7 +8,7 @@ const router = express.Router();
 const db = require('../database');
 const { body, param, validationResult } = require('express-validator');
 const DataFreshnessService = require('../services/dataFreshness.service');
-const marketDataService = require('../services/realTimeMarketData.service');
+const finnhubService = require('../services/finnhub.service');
 
 /**
  * Validation middleware
@@ -65,10 +65,17 @@ router.get('/:userId', [
     
     console.log(`[Watchlist] Found ${result.rows.length} items`);
 
-    // Fetch real-time prices for all watchlist stocks
+    // Fetch real-time prices from Finnhub for all watchlist stocks
     const symbols = result.rows.map(row => row.symbol);
-    const priceData = await marketDataService.getBulkRealtimeData(symbols);
-    const priceMap = new Map(priceData.map(p => [p.symbol, p]));
+    const priceData = await finnhubService.getQuotes(symbols);
+    
+    // Create price map - strip .NS suffix for matching with database symbols
+    const priceMap = new Map(
+      priceData.map(p => {
+        const baseSymbol = p.symbol.replace(/\.(NS|BO)$/, ''); // Remove exchange suffix
+        return [baseSymbol, p];
+      })
+    );
     
     console.log(`[Watchlist] Fetched prices for ${priceData.length}/${symbols.length} stocks`);
 
@@ -90,12 +97,15 @@ router.get('/:userId', [
         debt_to_fcf: parseFloat(item.debt_to_fcf) || 0,
         revenue_growth: parseFloat(item.revenue_growth) || 0,
         peg_ratio: parseFloat(item.peg_ratio) || 0,
-        current_price: prices?.currentPrice || 0,
-        previous_close: prices?.previousClose || 0,
-        change_percent: prices?.changePercent || 0,
+        current_price: prices?.current_price || 0,
+        previous_close: prices?.previous_close || 0,
+        change_percent: prices?.change_percent || 0,
         volume: prices?.volume || 0,
-        last_price_update: prices?.lastUpdate,
-        price_source: prices?.isMock ? 'MOCK' : 'YAHOO_FINANCE'
+        last_price_update: prices?.timestamp,
+        price_source: prices?.data_source || 'UNKNOWN',
+        is_real_data: prices?.is_real_data || false,
+        is_delayed: prices?.is_delayed || false,
+        delay_minutes: prices?.delay_minutes || 0
       };
     });
 

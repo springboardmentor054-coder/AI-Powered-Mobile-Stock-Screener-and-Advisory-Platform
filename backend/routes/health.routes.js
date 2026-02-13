@@ -7,7 +7,7 @@ const express = require("express");
 const router = express.Router();
 const healthMonitor = require("../services/healthMonitor.service");
 const queryCache = require("../services/queryCache.service");
-const dataIngestion = require("../services/dataIngestion.service");
+const finnhubService = require("../services/finnhub.service");
 
 /**
  * GET /health
@@ -72,75 +72,56 @@ router.get("/admin/stats", async (req, res) => {
 
 /**
  * POST /admin/ingest
- * Trigger data ingestion for symbols
- * Body: { "symbols": ["TCS", "INFY", "WIPRO"] }
+ * DEPRECATED: No longer needed - using real-time Finnhub API
+ * Data is fetched on-demand with caching, no batch ingestion required
+ * 
+ * Legacy: Was used to load fundamentals from Alpha Vantage
+ * Current: All market data comes from Finnhub in real-time
  */
 router.post("/admin/ingest", async (req, res) => {
-  try {
-    const { symbols } = req.body;
-    
-    if (!Array.isArray(symbols) || symbols.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "symbols array is required"
-      });
+  res.status(410).json({
+    success: false,
+    error: "Deprecated endpoint",
+    message: "Batch data ingestion is no longer used. All data is fetched real-time from Finnhub API.",
+    migration_info: {
+      old_system: "Batch load from Alpha Vantage → Database",
+      new_system: "Real-time Finnhub API → Cache → Client",
+      benefits: [
+        "Always current data (15-minute delay vs days)",
+        "Reduced database load",
+        "Single source of truth",
+        "Automatic fallback to mock data if API unavailable"
+      ]
     }
-
-    const result = await dataIngestion.ingestFundamentals(symbols);
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
+  });
 });
 
 /**
  * POST /admin/update-fundamentals
- * Update fundamentals for existing companies
- * Body: { "limit": 10 }
+ * DEPRECATED: No longer needed - fundamentals updated in real-time from Finnhub
  */
 router.post("/admin/update-fundamentals", async (req, res) => {
-  try {
-    const { limit = 10 } = req.body;
-    
-    const result = await dataIngestion.updateFundamentals(limit);
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
+  res.status(410).json({
+    success: false,
+    error: "Deprecated endpoint",
+    message: "Fundamentals are now fetched real-time from Finnhub API.",
+    status: {
+      finnhub_api_configured: !!process.env.FINNHUB_API_KEY,
+      cache_status: finnhubService.getStatus()
+    }
+  });
 });
 
 /**
  * POST /admin/calculate-metrics
- * Recalculate derived metrics (Debt/FCF, etc.)
+ * DEPRECATED: No longer needed - metrics calculated on-demand
  */
 router.post("/admin/calculate-metrics", async (req, res) => {
-  try {
-    await dataIngestion.calculateDerivedMetrics();
-    
-    res.json({
-      success: true,
-      message: "Derived metrics calculated successfully"
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
+  res.status(410).json({
+    success: false,
+    error: "Deprecated endpoint",
+    message: "Derived metrics are now calculated in real-time on API response."
+  });
 });
 
 module.exports = router;

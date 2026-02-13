@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const alertService = require('../services/alert.service');
+const db = require('../database');
 const { body, param, query, validationResult } = require('express-validator');
 
 /**
@@ -21,6 +22,52 @@ const validate = (req, res, next) => {
   }
   next();
 };
+
+function buildAlertTitle(symbol, alertType, targetPrice) {
+  const upperSymbol = String(symbol || '').toUpperCase();
+  const safeType = String(alertType || '').toLowerCase();
+  const hasTarget = typeof targetPrice === 'number' && Number.isFinite(targetPrice);
+
+  if (safeType.includes('below')) {
+    return hasTarget
+      ? `Price alert: ${upperSymbol} below ${targetPrice}`
+      : `Price alert: ${upperSymbol} moved lower`;
+  }
+
+  if (safeType.includes('above')) {
+    return hasTarget
+      ? `Price alert: ${upperSymbol} above ${targetPrice}`
+      : `Price alert: ${upperSymbol} moved higher`;
+  }
+
+  if (safeType.includes('target')) {
+    return hasTarget
+      ? `Price target: ${upperSymbol} at ${targetPrice}`
+      : `Price target update: ${upperSymbol}`;
+  }
+
+  return `Alert: ${upperSymbol}`;
+}
+
+function buildAlertDescription(symbol, alertType, targetPrice) {
+  const upperSymbol = String(symbol || '').toUpperCase();
+  const safeType = String(alertType || '').toLowerCase();
+  const hasTarget = typeof targetPrice === 'number' && Number.isFinite(targetPrice);
+
+  if (safeType.includes('below') && hasTarget) {
+    return `${upperSymbol} crossed below ${targetPrice}.`;
+  }
+
+  if (safeType.includes('above') && hasTarget) {
+    return `${upperSymbol} crossed above ${targetPrice}.`;
+  }
+
+  if (safeType.includes('target') && hasTarget) {
+    return `${upperSymbol} reached target level ${targetPrice}.`;
+  }
+
+  return `${upperSymbol} triggered a ${alertType} condition.`;
+}
 
 /**
  * @route   GET /api/alerts/:userId
@@ -79,6 +126,78 @@ router.get('/:userId/stats', [
     res.status(500).json({
       success: false,
       error: 'Failed to fetch alert statistics',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/alerts
+ * @desc    Create a simplified alert from mobile/web clients
+ * @access  Public
+ */
+router.post('/', [
+  body('userId').isInt({ min: 1 }).withMessage('Valid user ID required'),
+  body('symbol').isString().trim().notEmpty().withMessage('Symbol required'),
+  body('alertType').isString().trim().notEmpty().withMessage('Alert type required'),
+  body('severity').optional().isIn(['low', 'medium', 'high', 'critical']),
+  body('targetPrice').optional().isFloat({ min: 0.0001 }).withMessage('targetPrice must be positive')
+], validate, async (req, res) => {
+  try {
+    const {
+      userId,
+      symbol,
+      alertType,
+      severity = 'medium',
+      targetPrice
+    } = req.body;
+
+    const companyResult = await db.query(
+      'SELECT id, symbol FROM companies WHERE UPPER(symbol) = UPPER($1) LIMIT 1',
+      [symbol]
+    );
+
+    if (companyResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Stock not found',
+        message: `Symbol ${symbol} not found`
+      });
+    }
+
+    const companyId = companyResult.rows[0].id;
+    const normalizedSymbol = companyResult.rows[0].symbol;
+
+    const parsedTarget = targetPrice !== undefined ? Number(targetPrice) : null;
+    const title = buildAlertTitle(normalizedSymbol, alertType, parsedTarget);
+    const description = buildAlertDescription(normalizedSymbol, alertType, parsedTarget);
+
+    const alert = await alertService.createAlert({
+      userId: parseInt(userId, 10),
+      companyId,
+      alertType,
+      severity,
+      title,
+      description,
+      previousValue: parsedTarget !== null ? { price: parsedTarget } : null,
+      currentValue: null,
+      metadata: {
+        source: 'client_simplified',
+        symbol: normalizedSymbol,
+        target_price: parsedTarget
+      }
+    });
+
+    res.status(alert.suppressed ? 200 : 201).json({
+      success: true,
+      message: alert.suppressed ? 'Alert suppressed by cooldown' : 'Alert created successfully',
+      data: alert
+    });
+  } catch (error) {
+    console.error('[Alerts] Simplified create error:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Failed to create alert',
       message: error.message
     });
   }
@@ -156,6 +275,73 @@ router.patch('/:alertId/read', [
     res.status(400).json({
       success: false,
       error: 'Failed to mark alert as read',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   PATCH /api/alerts/:alertId/acknowledge
+ * @desc    Acknowledge an alert (REST-friendly alias)
+ * @access  Public
+ */
+router.patch('/:alertId/acknowledge', [
+  param('alertId').isInt({ min: 1 }).withMessage('Valid alert ID required'),
+  body('userId').isInt({ min: 1 }).withMessage('Valid user ID required')
+], validate, async (req, res) => {
+  try {
+    const { alertId } = req.params;
+    const { userId } = req.body;
+
+    const alert = await alertService.acknowledgeAlert(parseInt(alertId, 10), parseInt(userId, 10));
+
+    res.json({
+      success: true,
+      message: 'Alert acknowledged',
+      data: alert
+    });
+  } catch (error) {
+    console.error('[Alerts] Acknowledge alias error:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Failed to acknowledge alert',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   PATCH /api/alerts/:userId/read-all
+ * @desc    Mark all active alerts as read for a user
+ * @access  Public
+ */
+router.patch('/:userId/read-all', [
+  param('userId').isInt({ min: 1 }).withMessage('Valid user ID required')
+], validate, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await db.query(
+      `UPDATE alerts
+       SET read = true
+       WHERE user_id = $1
+         AND active = true
+         AND (expires_at IS NULL OR expires_at > NOW())
+       RETURNING id`,
+      [parseInt(userId, 10)]
+    );
+
+    res.json({
+      success: true,
+      message: 'All alerts marked as read',
+      data: {
+        updated_count: result.rowCount
+      }
+    });
+  } catch (error) {
+    console.error('[Alerts] Read-all error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark all alerts as read',
       message: error.message
     });
   }
@@ -305,6 +491,87 @@ router.post('/:userId/process-pending', [
     res.status(500).json({
       success: false,
       error: 'Failed to process pending alerts',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/alerts/:alertId
+ * @desc    Soft-delete alert by marking inactive
+ * @access  Public
+ */
+router.delete('/:alertId', [
+  param('alertId').isInt({ min: 1 }).withMessage('Valid alert ID required'),
+  query('userId').optional().isInt({ min: 1 }).withMessage('Valid user ID required'),
+  body('userId').optional().isInt({ min: 1 }).withMessage('Valid user ID required')
+], validate, async (req, res) => {
+  try {
+    const { alertId } = req.params;
+    const userIdRaw = req.query.userId ?? req.body.userId;
+
+    if (!userIdRaw) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required for alert deletion'
+      });
+    }
+
+    const userId = parseInt(userIdRaw, 10);
+
+    const result = await db.query(
+      `UPDATE alerts SET active = false WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [parseInt(alertId, 10), userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Alert not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Alert deleted'
+    });
+  } catch (error) {
+    console.error('[Alerts] Delete error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete alert',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/alerts/:userId/dismissed
+ * @desc    Clear dismissed/inactive alerts for a user
+ * @access  Public
+ */
+router.delete('/:userId/dismissed', [
+  param('userId').isInt({ min: 1 }).withMessage('Valid user ID required')
+], validate, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await db.query(
+      `DELETE FROM alerts WHERE user_id = $1 AND active = false RETURNING id`,
+      [parseInt(userId, 10)]
+    );
+
+    res.json({
+      success: true,
+      message: 'Dismissed alerts cleared',
+      data: {
+        deleted_count: result.rowCount
+      }
+    });
+  } catch (error) {
+    console.error('[Alerts] Clear dismissed error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear dismissed alerts',
       message: error.message
     });
   }

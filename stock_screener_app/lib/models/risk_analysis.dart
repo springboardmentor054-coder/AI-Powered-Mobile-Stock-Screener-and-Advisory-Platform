@@ -60,15 +60,15 @@ class RiskAnalysis {
   String get riskIcon {
     switch (overallRisk) {
       case 'LOW':
-        return '✅';
+        return 'LOW';
       case 'MEDIUM':
-        return '⚠️';
+        return 'MEDIUM';
       case 'HIGH':
-        return '🔴';
+        return 'HIGH';
       case 'VERY HIGH':
-        return '🚨';
+        return 'VERY HIGH';
       default:
-        return '❓';
+        return '?';
     }
   }
 }

@@ -7,10 +7,10 @@ class RealtimeStockCard extends StatefulWidget {
   final VoidCallback onTap;
 
   const RealtimeStockCard({
-    Key? key,
+    super.key,
     required this.stock,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<RealtimeStockCard> createState() => _RealtimeStockCardState();
@@ -30,9 +30,24 @@ class _RealtimeStockCardState extends State<RealtimeStockCard> {
   Future<void> _loadRealtimeData() async {
     final symbol = widget.stock['symbol'];
     final data = await _apiService.getRealtimeStockData(symbol);
+    final intraday = await _apiService.getIntradayData(symbol);
+
+    final candles = (intraday?['candles'] as List<dynamic>?) ?? [];
+    final prices = candles.map((c) {
+      if (c is Map<String, dynamic>) {
+        final close = c['c'] ?? c['close'] ?? c['current_price'];
+        if (close is num) return close.toDouble();
+        if (close is String) return double.tryParse(close) ?? 0.0;
+      }
+      return 0.0;
+    }).where((v) => v > 0).toList();
+
     if (mounted) {
       setState(() {
-        _realtimeData = data;
+        _realtimeData = {
+          ...?data,
+          'prices': prices
+        };
         _isLoading = false;
       });
     }
@@ -44,9 +59,9 @@ class _RealtimeStockCardState extends State<RealtimeStockCard> {
     final name = widget.stock['name'] ?? 'Unknown';
     final sector = widget.stock['sector'] ?? 'N/A';
     
-    final currentPrice = _realtimeData?['currentPrice'] ?? 0.0;
+    final currentPrice = _realtimeData?['currentPrice'] ?? _realtimeData?['current_price'] ?? 0.0;
     final change = _realtimeData?['change'] ?? 0.0;
-    final changePercent = _realtimeData?['changePercent'] ?? 0.0;
+    final changePercent = _realtimeData?['changePercent'] ?? _realtimeData?['change_percent'] ?? 0.0;
     final isPositive = change >= 0;
 
     return Card(

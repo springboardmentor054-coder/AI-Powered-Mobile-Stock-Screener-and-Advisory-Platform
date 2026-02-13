@@ -3,7 +3,32 @@
  * Validates incoming DSL JSON before compiling to SQL
  */
 
-const ALLOWED_FIELDS = ["sector", "pe_ratio", "peg_ratio", "debt_to_fcf", "revenue_growth"];
+const ALLOWED_FIELDS = [
+  "pe_ratio",
+  "market_cap_cr",
+  "industry_pe",
+  "pb_ratio",
+  "roe",
+  "roce",
+  "eps",
+  "ltp",
+  "change_pct",
+  "open",
+  "volume",
+  "return_1m",
+  "return_3m",
+  "return_1y",
+  "return_3y",
+  "return_5y",
+  "rsi",
+  "dividend",
+  "high_52w",
+  "low_52w",
+  "dma_50",
+  "dma_200",
+  "margin_funding",
+  "margin_pledge"
+];
 const ALLOWED_OPERATORS = ["<", ">", "<=", ">=", "="];
 
 /**
@@ -17,13 +42,6 @@ function validateDSL(dsl) {
 
   if (!dsl || typeof dsl !== "object") {
     throw new Error("DSL must be an object");
-  }
-
-  // Validate sector (optional)
-  if (dsl.sector !== undefined) {
-    if (typeof dsl.sector !== "string") {
-      throw new Error("sector must be a string");
-    }
   }
 
   // Validate filters (optional)
@@ -61,7 +79,7 @@ function validateDSL(dsl) {
       }
 
       // Validate value
-      if (filter.field !== "sector" && typeof filter.value !== "number") {
+      if (typeof filter.value !== "number") {
         throw new Error(
           `Value for "${filter.field}" at index ${index} must be a number`
         );

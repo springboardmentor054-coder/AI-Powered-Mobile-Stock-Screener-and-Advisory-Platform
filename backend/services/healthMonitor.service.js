@@ -158,7 +158,7 @@ class HealthMonitorService {
    * Comprehensive health check
    */
   async performHealthCheck() {
-    console.log('🏥 Performing health check...');
+    console.log('Performing health check...');
 
     const results = {
       timestamp: new Date().toISOString(),
@@ -200,14 +200,16 @@ class HealthMonitorService {
    * Get quick health status
    */
   getQuickHealth() {
-    if (!this.lastCheck || 
-        (new Date() - new Date(this.lastCheck.timestamp)) > 60000) {
-      // Cache expired, return basic status
+    if (!this.lastCheck) {
+      // No check performed yet, return degraded status based on current checks
+      const status = (!this.checks.database || !this.checks.llm) ? 'unhealthy' : 'degraded';
       return {
-        status: 'unknown',
-        message: 'Health check not performed recently',
-        database: this.checks.database ? 'connected' : 'unknown',
-        llm: this.checks.llm ? 'configured' : 'unknown'
+        status: status,
+        message: 'Health check in progress',
+        database: this.checks.database ? 'connected' : 'disconnected',
+        llm: this.checks.llm ? 'configured' : 'not configured',
+        cache: this.checks.cache ? 'available' : 'unavailable',
+        last_check: new Date().toISOString()
       };
     }
 
@@ -224,7 +226,7 @@ class HealthMonitorService {
    * Start periodic health monitoring
    */
   startPeriodicMonitoring(intervalSeconds = 60) {
-    console.log(`⏰ Starting health monitoring (every ${intervalSeconds}s)`);
+    console.log(`Starting health monitoring (every ${intervalSeconds}s)`);
 
     // Initial check
     this.performHealthCheck().catch(err => {
@@ -251,7 +253,7 @@ class HealthMonitorService {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('⏰ Health monitoring stopped');
+      console.log('Health monitoring stopped');
     }
   }
 }

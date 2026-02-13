@@ -34,7 +34,7 @@ class DataFreshnessService {
         status: 'UNKNOWN',
         last_updated: null,
         warning: 'Data timestamp missing - data quality unknown',
-        delay_badge: '❌ No timestamp'
+        delay_badge: 'No timestamp'
       };
     }
 
@@ -47,28 +47,28 @@ class DataFreshnessService {
 
     let status = 'FRESH';
     let warning = '';
-    let delay_badge = '✅ Fresh';
+    let delay_badge = 'Fresh';
 
     if (ageMinutes < this.FRESH_THRESHOLD) {
       status = 'FRESH';
       warning = '';
-      delay_badge = '✅ Real-time';
+      delay_badge = 'Real-time';
     } else if (ageMinutes < this.STALE_THRESHOLD) {
       status = 'STALE';
-      warning = `⚠️ Data is ${ageMinutes} minutes old - use with caution for trading decisions`;
-      delay_badge = `⏱️ Delayed ${ageMinutes}m`;
+      warning = `Data is ${ageMinutes} minutes old - use with caution for trading decisions`;
+      delay_badge = `Delayed ${ageMinutes}m`;
     } else if (ageHours < 24) {
       status = 'VERY_STALE';
-      warning = `🔴 CRITICAL: Data is ${ageHours} hours old - do NOT trade on this data`;
-      delay_badge = `🔴 ${ageHours}h old`;
+      warning = `CRITICAL: Data is ${ageHours} hours old - do NOT trade on this data`;
+      delay_badge = `${ageHours}h old`;
     } else if (ageDays < 7) {
       status = 'VERY_STALE';
-      warning = `🔴 CRITICAL: Data is ${ageDays} days old - do NOT use for trading`;
-      delay_badge = `🔴 ${ageDays}d old`;
+      warning = `CRITICAL: Data is ${ageDays} days old - do NOT use for trading`;
+      delay_badge = `${ageDays}d old`;
     } else {
       status = 'VERY_STALE';
-      warning = `🔴 CRITICAL: Data is > 7 days old - API connection lost, using fallback data`;
-      delay_badge = `🔴 >7d old`;
+      warning = `CRITICAL: Data is > 7 days old - API connection lost, using fallback data`;
+      delay_badge = `>7d old`;
     }
 
     return {

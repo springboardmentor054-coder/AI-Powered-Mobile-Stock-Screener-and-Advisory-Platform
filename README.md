@@ -1,4 +1,4 @@
-# 🚀 AI-Powered Stock Screener Pro
+# AI-Powered Stock Screener Pro
 
 An intelligent mobile stock screening application powered by AI with **production-grade backend enhancements**.
 
@@ -7,9 +7,9 @@ An intelligent mobile stock screening application powered by AI with **productio
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-## 🎉 Latest Updates (January 2026)
+## Latest Updates (January 2026)
 
-### 🌟 **NEWEST: Advanced Dashboard & Premium Theme** (Just Added!)
+### NEWEST: Advanced Dashboard & Premium Theme (Just Added!)
 
 **Complete UI/UX Overhaul:**
 - ✅ **Premium Theme** - Deep Blue & Gold advanced theme with gradients
@@ -20,14 +20,14 @@ An intelligent mobile stock screening application powered by AI with **productio
 - ✅ **Global Query Cache** - Cross-user caching for lightning-fast responses
 - ✅ **System Health Monitor** - Real-time backend status tracking
 
-📖 **New Documentation:**
+**New Documentation:**
 - [IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md) - Complete feature summary
 - [QUICK_START.md](QUICK_START.md) - 2-minute quick start guide
 - [DASHBOARD_IMPLEMENTATION.md](DASHBOARD_IMPLEMENTATION.md) - Dashboard details
 - [BEFORE_AFTER.md](BEFORE_AFTER.md) - Visual comparison
 - [TESTING_GUIDE.md](TESTING_GUIDE.md) - Complete testing procedures
 
-🚀 **Try It Now:**
+**Try It Now:**
 ```powershell
 # Terminal 1: Start backend
 cd backend && node server.js
@@ -50,11 +50,11 @@ cd stock_screener_app && flutter run
 - ✅ **Security & Validation** - Production-ready safeguards
 - ✅ **Admin Monitoring** - Real-time system status dashboard
 
-📖 **Backend Documentation:**
+**Backend Documentation:**
 - [backend/ENHANCEMENT_SUMMARY.md](backend/ENHANCEMENT_SUMMARY.md) - Overview of all backend features
 - [backend/IMPLEMENTATION_GUIDE.md](backend/IMPLEMENTATION_GUIDE.md) - Full technical documentation
 
-🚀 **Quick Start (Backend Only):**
+**Quick Start (Backend Only):**
 ```powershell
 # Setup everything
 .\quick-start-enhanced.ps1
@@ -67,16 +67,16 @@ cd stock_screener_app && flutter run
 
 ## ✨ Features
 
-- 🤖 **AI-Powered Natural Language Processing** - Search stocks using plain English queries
-- 📊 **Advanced Market Insights** - Comprehensive P/E ratio analysis, market cap statistics, and sector distribution
-- 🎨 **Modern Material Design 3 UI** - Beautiful, responsive interface with smooth animations
+- **AI-Powered Natural Language Processing** - Search stocks using plain English queries
+- **Advanced Market Insights** - Comprehensive P/E ratio analysis, market cap statistics, and sector distribution
+- **Modern Material Design 3 UI** - Beautiful, responsive interface with smooth animations
 - ⚡ **Real-time Stock Screening** - Fast query processing with optimized database operations
-- 📈 **Detailed Stock Cards** - View key metrics including P/E ratio, PEG ratio, debt to FCF, and more
-- 🔍 **Smart Filtering** - Sort results by market cap, P/E ratio, or PEG ratio
-- 🌓 **Dark Mode Support** - Automatic theme switching based on system preferences
-- 🎯 **Server Health Monitoring** - Live backend connection status indicator
+- **Detailed Stock Cards** - View key metrics including P/E ratio, PEG ratio, debt to FCF, and more
+- **Smart Filtering** - Sort results by market cap, P/E ratio, or PEG ratio
+- **Dark Mode Support** - Automatic theme switching based on system preferences
+- **Server Health Monitoring** - Live backend connection status indicator
 
-## 📱 Screenshots
+## Screenshots
 
 ### Home Screen
 - Clean, gradient-based design
@@ -90,7 +90,7 @@ cd stock_screener_app && flutter run
 - Sortable stock listings
 - Detailed metric cards with color-coded indicators
 
-## 🏗️ Architecture
+## Architecture
 
 ### Frontend (Flutter)
 ```
@@ -121,7 +121,7 @@ backend/
 └── schema.sql                    # Database schema with sample data
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+ and npm
@@ -208,7 +208,7 @@ backend/
    flutter run -d chrome
    ```
 
-## 📖 Usage Guide
+## Usage Guide
 
 ### Example Queries
 
@@ -241,7 +241,7 @@ The app understands natural language queries like:
 - `>=` - Greater than or equal to
 - `=` - Equal to
 
-## 🎨 Key Features Explained
+## Key Features Explained
 
 ### Enhanced Market Insights
 - **P/E Ratio Analysis**: Average, minimum, and maximum across results
@@ -260,7 +260,7 @@ The app understands natural language queries like:
 - Automatic health checks on app launch
 - Visual feedback (green = online, red = offline)
 
-## 🔧 Configuration
+## Configuration
 
 ### Backend API Endpoint
 Update the base URL in [api_service.dart](stock_screener_app/lib/services/api_service.dart):
@@ -280,7 +280,7 @@ INSERT INTO fundamentals (symbol, pe_ratio, peg_ratio, debt_to_fcf, revenue_grow
 ('SYMBOL', 25.5, 2.1, 0.15, 12.5, 500000000000, 45.2);
 ```
 
-## 📚 API Documentation
+## API Documentation
 
 ### POST `/screener`
 Screen stocks using natural language query.
@@ -321,7 +321,7 @@ Check backend server status.
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 Run backend tests:
 ```bash
@@ -340,7 +340,7 @@ curl -X POST http://localhost:5000/screener \
   -d '{"query": "Show IT stocks with PE below 25"}'
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Backend Deployment
 Deploy to platforms like:
@@ -363,22 +363,22 @@ flutter build ios --release
 flutter build web --release
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Groq AI** for fast LLM inference
 - **Flutter Team** for the amazing framework
 - **PostgreSQL** for robust database management
 - **Material Design 3** for beautiful UI components
 
-## 📧 Support
+## Support
 
 For questions or issues, please open an issue on GitHub or contact the maintainers.
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/premium_theme.dart';
 import '../widgets/premium_card.dart';
 import '../widgets/stock_list_tile.dart';
@@ -8,77 +9,76 @@ class ResultScreen extends StatefulWidget {
   final List<dynamic> results;
   final String query;
 
-  const ResultScreen({
-    super.key,
-    required this.results,
-    required this.query,
-  });
+  const ResultScreen({super.key, required this.results, required this.query});
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
 }
 
 class _ResultScreenState extends State<ResultScreen> {
-  String _sortBy = 'symbol'; // symbol, price, changePercent, marketCap
-  bool _sortAscending = true;
-  String _filterSector = 'All';
-  
+  static const String _allSectorsLabel = 'All Sectors';
+  String _sortBy = 'marketCap'; // symbol, price, changePercent, marketCap
+  bool _sortAscending = false;
+  String _filterSector = _allSectorsLabel;
+
   List<String> get _sectors {
-    final sectors = widget.results
-        .map((stock) => stock['sector']?.toString() ?? 'Unknown')
-        .toSet()
-        .toList();
-    sectors.insert(0, 'All');
+    final sectors =
+        widget.results
+            .map((stock) => _displaySector(stock['sector']))
+            .whereType<String>()
+            .toSet()
+            .toList()
+          ..sort();
+    sectors.insert(0, _allSectorsLabel);
     return sectors;
   }
 
   List<dynamic> get _filteredAndSortedResults {
     var filtered = widget.results.where((stock) {
-      if (_filterSector == 'All') return true;
-      return stock['sector'] == _filterSector;
+      if (_filterSector == _allSectorsLabel) return true;
+      return _displaySector(stock['sector']) == _filterSector;
     }).toList();
 
     filtered.sort((a, b) {
-      dynamic aValue, bValue;
-      
+      if (_sortBy == 'symbol') {
+        final aValue = a['symbol']?.toString() ?? '';
+        final bValue = b['symbol']?.toString() ?? '';
+        return _sortAscending
+            ? aValue.compareTo(bValue)
+            : bValue.compareTo(aValue);
+      }
+
+      double aValue = 0.0;
+      double bValue = 0.0;
+
       switch (_sortBy) {
-        case 'symbol':
-          aValue = a['symbol']?.toString() ?? '';
-          bValue = b['symbol']?.toString() ?? '';
-          break;
         case 'price':
-          aValue = a['currentPrice'] ?? 0;
-          bValue = b['currentPrice'] ?? 0;
+          aValue = _toDouble(a['currentPrice']);
+          bValue = _toDouble(b['currentPrice']);
           break;
         case 'changePercent':
           aValue = _calculateChangePercent(a);
           bValue = _calculateChangePercent(b);
           break;
         case 'marketCap':
-          aValue = a['marketCap'] ?? 0;
-          bValue = b['marketCap'] ?? 0;
+          aValue = _toDouble(a['marketCap']);
+          bValue = _toDouble(b['marketCap']);
           break;
         default:
           return 0;
       }
 
-      final comparison = _sortAscending
-          ? (aValue is String
-              ? aValue.compareTo(bValue)
-              : (aValue as num).compareTo(bValue as num))
-          : (aValue is String
-              ? bValue.compareTo(aValue)
-              : (bValue as num).compareTo(aValue as num));
-
-      return comparison;
+      return _sortAscending
+          ? aValue.compareTo(bValue)
+          : bValue.compareTo(aValue);
     });
 
     return filtered;
   }
 
   double _calculateChangePercent(dynamic stock) {
-    final current = stock['currentPrice'] ?? 0;
-    final previous = stock['previousClose'] ?? current;
+    final current = _toDouble(stock['currentPrice']);
+    final previous = _toDouble(stock['previousClose'], fallback: current);
     if (previous == 0) return 0;
     return ((current - previous) / previous) * 100;
   }
@@ -86,6 +86,7 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredResults = _filteredAndSortedResults;
+    final hasLiveData = _hasAnyLiveData(filteredResults);
 
     return Scaffold(
       backgroundColor: PremiumColors.deepDark,
@@ -99,10 +100,7 @@ class _ResultScreenState extends State<ResultScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Search Results',
-              style: PremiumTypography.h3,
-            ),
+            Text('Search Results', style: PremiumTypography.h3),
             Text(
               '${filteredResults.length} stocks found',
               style: PremiumTypography.caption,
@@ -110,6 +108,13 @@ class _ResultScreenState extends State<ResultScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded),
+            tooltip: 'Export Results',
+            onPressed: filteredResults.isEmpty
+                ? null
+                : () => _copyResultsReport(filteredResults),
+          ),
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
             onPressed: _showFilterSheet,
@@ -144,6 +149,13 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
             ),
           ),
+          if (hasLiveData)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: PremiumUI.spacingL,
+              ),
+              child: _buildDataQualityCard(filteredResults),
+            ),
 
           // Sort & Filter Bar
           Padding(
@@ -244,13 +256,19 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildStockTile(dynamic stock) {
-    final symbol = stock['symbol']?.toString() ?? 'N/A';
-    final companyName = stock['companyName']?.toString() ?? 'Unknown';
-    final currentPrice = stock['currentPrice']?.toDouble() ?? 0.0;
-    final previousClose = stock['previousClose']?.toDouble() ?? currentPrice;
+    final symbol = stock['symbol']?.toString().trim().isNotEmpty == true
+        ? stock['symbol'].toString()
+        : 'NA';
+    final companyName = _companyName(stock);
+    final currentPrice = _toDouble(stock['currentPrice']);
+    final previousClose = _toDouble(
+      stock['previousClose'],
+      fallback: currentPrice,
+    );
     final change = currentPrice - previousClose;
     final changePercent = _calculateChangePercent(stock);
-    final sector = stock['sector']?.toString();
+    final sector = _displaySector(stock['sector']);
+    final tag = _sourceTag(stock);
 
     return StockListTile(
       symbol: symbol,
@@ -259,18 +277,28 @@ class _ResultScreenState extends State<ResultScreen> {
       change: change,
       changePercent: changePercent,
       sectorTag: sector,
+      dataTag: tag['label'] as String?,
+      dataTagBackgroundColor: tag['bg'] as Color?,
+      dataTagTextColor: tag['fg'] as Color?,
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => StockDetailScreen(
-              symbol: symbol,
-              stockData: stock,
-            ),
+            builder: (context) =>
+                StockDetailScreen(symbol: symbol, stockData: stock),
           ),
         );
       },
     );
+  }
+
+  String _companyName(dynamic stock) {
+    final name =
+        stock['companyName']?.toString().trim() ??
+        stock['company_name']?.toString().trim() ??
+        stock['name']?.toString().trim() ??
+        '';
+    return name.isEmpty ? 'Not Available' : name;
   }
 
   Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap) {
@@ -282,9 +310,7 @@ class _ResultScreenState extends State<ResultScreen> {
           vertical: PremiumUI.spacingS,
         ),
         decoration: BoxDecoration(
-          color: isSelected
-              ? PremiumColors.neonTeal
-              : PremiumColors.surfaceBg,
+          color: isSelected ? PremiumColors.neonTeal : PremiumColors.surfaceBg,
           borderRadius: BorderRadius.circular(PremiumUI.radiusL),
         ),
         child: Row(
@@ -294,7 +320,7 @@ class _ResultScreenState extends State<ResultScreen> {
               label,
               style: PremiumTypography.body2.copyWith(
                 color: isSelected
-                    ? PremiumColors.deepDark
+                    ? PremiumColors.textOnAccent
                     : PremiumColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
@@ -306,10 +332,62 @@ class _ResultScreenState extends State<ResultScreen> {
                     ? Icons.arrow_upward_rounded
                     : Icons.arrow_downward_rounded,
                 size: 14,
-                color: PremiumColors.deepDark,
+                color: PremiumColors.textOnAccent,
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataQualityCard(List<dynamic> stocks) {
+    int live = 0;
+
+    for (final stock in stocks) {
+      final source = _sourceKey(stock);
+      if (source == 'FINNHUB_API') {
+        live++;
+      }
+    }
+
+    return PremiumCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: PremiumUI.spacingM,
+        vertical: PremiumUI.spacingS,
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.verified_outlined,
+            color: PremiumColors.neonTeal,
+            size: 18,
+          ),
+          const SizedBox(width: PremiumUI.spacingS),
+          Expanded(
+            child: Wrap(
+              spacing: PremiumUI.spacingS,
+              runSpacing: PremiumUI.spacingS,
+              children: [_buildStatusPill('Live $live', PremiumColors.profit)],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusPill(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(PremiumUI.radiusM),
+      ),
+      child: Text(
+        label,
+        style: PremiumTypography.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -344,10 +422,7 @@ class _ResultScreenState extends State<ResultScreen> {
                     ),
                   ),
                   const SizedBox(height: PremiumUI.spacingL),
-                  Text(
-                    'Filter by Sector',
-                    style: PremiumTypography.h3,
-                  ),
+                  Text('Filter by Sector', style: PremiumTypography.h3),
                   const SizedBox(height: PremiumUI.spacingL),
                   Wrap(
                     spacing: PremiumUI.spacingS,
@@ -371,13 +446,15 @@ class _ResultScreenState extends State<ResultScreen> {
                             color: isSelected
                                 ? PremiumColors.neonTeal
                                 : PremiumColors.surfaceBg,
-                            borderRadius: BorderRadius.circular(PremiumUI.radiusL),
+                            borderRadius: BorderRadius.circular(
+                              PremiumUI.radiusL,
+                            ),
                           ),
                           child: Text(
                             sector,
                             style: PremiumTypography.body2.copyWith(
                               color: isSelected
-                                  ? PremiumColors.deepDark
+                                  ? PremiumColors.textOnAccent
                                   : PremiumColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
@@ -393,6 +470,87 @@ class _ResultScreenState extends State<ResultScreen> {
           },
         );
       },
+    );
+  }
+
+  double _toDouble(dynamic value, {double fallback = 0.0}) {
+    if (value == null) return fallback;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final normalized = value.replaceAll(',', '').trim();
+      if (normalized.isEmpty) return fallback;
+      return double.tryParse(normalized) ?? fallback;
+    }
+    return fallback;
+  }
+
+  String? _displaySector(dynamic value) {
+    final raw = value?.toString().trim() ?? '';
+    if (_isMissingLabel(raw)) return null;
+    return raw;
+  }
+
+  bool _isMissingLabel(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized.isEmpty ||
+        normalized == 'unknown' ||
+        normalized == 'n/a' ||
+        normalized == 'na' ||
+        normalized == 'none' ||
+        normalized == 'null' ||
+        normalized == 'unspecified' ||
+        normalized == 'not available';
+  }
+
+  String _sourceKey(dynamic stock) {
+    return (stock['data_source'] ?? stock['dataSource'] ?? '')
+        .toString()
+        .trim()
+        .toUpperCase();
+  }
+
+  Map<String, dynamic> _sourceTag(dynamic stock) {
+    final source = _sourceKey(stock);
+
+    if (source == 'FINNHUB_API') {
+      return {
+        'label': 'Live',
+        'bg': PremiumColors.profit.withValues(alpha: 0.14),
+        'fg': PremiumColors.profit,
+      };
+    }
+
+    return {'label': null, 'bg': null, 'fg': null};
+  }
+
+  bool _hasAnyLiveData(List<dynamic> stocks) {
+    return stocks.any((stock) => _sourceKey(stock) == 'FINNHUB_API');
+  }
+
+  Future<void> _copyResultsReport(List<dynamic> stocks) async {
+    final buffer = StringBuffer();
+    buffer.writeln('EquiScan Screener Report');
+    buffer.writeln('Query: ${widget.query}');
+    buffer.writeln('Generated: ${DateTime.now().toIso8601String()}');
+    buffer.writeln('Results: ${stocks.length}');
+    buffer.writeln('');
+    buffer.writeln('Top Matches');
+
+    for (int i = 0; i < stocks.length && i < 20; i++) {
+      final stock = stocks[i];
+      final symbol = stock['symbol']?.toString().trim().isNotEmpty == true
+          ? stock['symbol'].toString()
+          : 'NA';
+      final name = _companyName(stock);
+      final price = _toDouble(stock['currentPrice']).toStringAsFixed(2);
+      final changePct = _calculateChangePercent(stock).toStringAsFixed(2);
+      buffer.writeln('${i + 1}. $symbol | $name | INR $price | $changePct%');
+    }
+
+    await Clipboard.setData(ClipboardData(text: buffer.toString()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Result report copied to clipboard')),
     );
   }
 }

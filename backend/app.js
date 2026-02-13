@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const healthMonitor = require("./services/healthMonitor.service");
 const backgroundEvaluator = require("./services/backgroundEvaluator.service");
+const logger = require("./utils/logger");
 const app = express();
 
 // Security middleware
@@ -12,27 +13,39 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+const disableRateLimit = process.env.DISABLE_RATE_LIMIT === "true";
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: {
-    success: false,
-    error: 'Too many requests from this IP, please try again later.'
+    status: 'error',
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Request limit exceeded. Please try again later.'
+    }
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// Apply rate limiting to all routes
-app.use(limiter);
+// Apply rate limiting to all routes unless explicitly disabled for controlled load tests.
+if (!disableRateLimit) {
+  app.use(limiter);
+} else {
+  logger.warn(logger.LOG_CATEGORIES.SYSTEM, "Rate limiting disabled via DISABLE_RATE_LIMIT");
+}
 
 // Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    logger.info(logger.LOG_CATEGORIES.API, `${req.method} ${req.path}`, {
+      status: res.statusCode,
+      duration_ms: duration
+    });
   });
   next();
 });
@@ -49,6 +62,7 @@ app.use("/api/watchlist", require("./routes/watchlist.routes")); // Watchlist
 app.use("/api/alerts", require("./routes/alerts.routes"));
 app.use("/api/screeners", require("./routes/screeners.routes")); // NEW: Saved Screeners
 app.use("/api/suggestions", require("./routes/suggestions.routes")); // Query suggestions
+app.use("/api/users", require("./routes/users.routes"));
 app.use("/api/admin", require("./routes/admin.routes"));
 
 // Start health monitoring
@@ -60,20 +74,28 @@ backgroundEvaluator.start();
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  logger.error(logger.LOG_CATEGORIES.SYSTEM, 'Unhandled error', { error: err.message });
   res.status(500).json({
-    success: false,
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    status: 'error',
+    timestamp: new Date().toISOString(),
+    error: {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    }
   });
 });
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
-    success: false,
-    error: 'Endpoint not found',
-    path: req.path
+    status: 'error',
+    timestamp: new Date().toISOString(),
+    error: {
+      code: 'ENDPOINT_NOT_FOUND',
+      message: 'The requested endpoint does not exist',
+      path: req.path
+    }
   });
 });
 

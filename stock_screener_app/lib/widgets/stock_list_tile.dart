@@ -10,9 +10,12 @@ class StockListTile extends StatelessWidget {
   final double change;
   final double changePercent;
   final String? sectorTag;
+  final String? dataTag;
+  final Color? dataTagBackgroundColor;
+  final Color? dataTagTextColor;
   final VoidCallback? onTap;
   final bool showSectorTag;
-  
+
   const StockListTile({
     super.key,
     required this.symbol,
@@ -21,6 +24,9 @@ class StockListTile extends StatelessWidget {
     required this.change,
     required this.changePercent,
     this.sectorTag,
+    this.dataTag,
+    this.dataTagBackgroundColor,
+    this.dataTagTextColor,
     this.onTap,
     this.showSectorTag = true,
   });
@@ -45,15 +51,15 @@ class StockListTile extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                symbol[0],
+                symbol.isNotEmpty ? symbol[0] : '?',
                 style: PremiumTypography.h3.copyWith(
-                  color: PremiumColors.deepDark,
+                  color: PremiumColors.textOnAccent,
                 ),
               ),
             ),
           ),
           const SizedBox(width: PremiumUI.spacingM),
-          
+
           // Stock Info
           Expanded(
             child: Column(
@@ -77,13 +83,40 @@ class StockListTile extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: PremiumColors.surfaceBg,
-                          borderRadius: BorderRadius.circular(PremiumUI.radiusS),
+                          borderRadius: BorderRadius.circular(
+                            PremiumUI.radiusS,
+                          ),
                         ),
                         child: Text(
                           sectorTag!,
                           style: PremiumTypography.caption.copyWith(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (dataTag != null) ...[
+                      const SizedBox(width: PremiumUI.spacingS),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              dataTagBackgroundColor ??
+                              PremiumColors.info.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(
+                            PremiumUI.radiusS,
+                          ),
+                        ),
+                        child: Text(
+                          dataTag!,
+                          style: PremiumTypography.caption.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: dataTagTextColor ?? PremiumColors.info,
                           ),
                         ),
                       ),
@@ -100,16 +133,14 @@ class StockListTile extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Price & Change
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₹${price.toStringAsFixed(2)}',
-                style: PremiumTypography.priceMedium.copyWith(
-                  fontSize: 18,
-                ),
+                'INR ${price.toStringAsFixed(2)}',
+                style: PremiumTypography.priceMedium.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 4),
               Row(
@@ -141,13 +172,15 @@ class StockListTile extends StatelessWidget {
 /// Compact Stock List Tile (for smaller lists)
 class CompactStockTile extends StatelessWidget {
   final String symbol;
+  final String companyName;
   final double price;
   final double changePercent;
   final VoidCallback? onTap;
-  
+
   const CompactStockTile({
     super.key,
     required this.symbol,
+    required this.companyName,
     required this.price,
     required this.changePercent,
     this.onTap,
@@ -177,9 +210,9 @@ class CompactStockTile extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  symbol[0],
+                  symbol.isNotEmpty ? symbol[0] : '?',
                   style: PremiumTypography.body2.copyWith(
-                    color: PremiumColors.deepDark,
+                    color: PremiumColors.textOnAccent,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -187,26 +220,34 @@ class CompactStockTile extends StatelessWidget {
             ),
             const SizedBox(width: PremiumUI.spacingM),
             Expanded(
-              child: Text(
-                symbol,
-                style: PremiumTypography.body2.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontFamily: PremiumTypography.numericFont,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    symbol,
+                    style: PremiumTypography.body2.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontFamily: PremiumTypography.numericFont,
+                    ),
+                  ),
+                  Text(
+                    companyName,
+                    style: PremiumTypography.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
             Text(
-              '₹${price.toStringAsFixed(2)}',
+              'INR ${price.toStringAsFixed(2)}',
               style: PremiumTypography.body2.copyWith(
                 fontFamily: PremiumTypography.numericFont,
               ),
             ),
             const SizedBox(width: PremiumUI.spacingM),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: changeColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(PremiumUI.radiusS),

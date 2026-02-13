@@ -1,171 +1,129 @@
-const pool = require("../database");
-// REMOVED: Alpha Vantage service (deprecated)
-// const { fetchCompanyOverview } = require("../services/marketData.service");
-const marketDataService = require("../services/realTimeMarketData.service");
+﻿const pool = require("../database");
+const DataFreshnessService = require("../services/dataFreshness.service");
+const responseFormatter = require("../utils/responseFormatter");
+const logger = require("../utils/logger");
 
-// DEPRECATED: Fetch and store stock data from Alpha Vantage API
-// This function is no longer used - Yahoo Finance via realTimeMarketData.service is primary
-/*
-async function fetchAndStoreStock(req, res) {
-  try {
-    const { ticker } = req.body;
+const ALLOWED_SORT_FIELDS = new Set([
+	"market_cap_cr",
+	"pe_ratio",
+	"ltp",
+	"change_pct",
+	"volume",
+	"return_1m",
+	"return_3m",
+	"return_1y",
+	"return_3y",
+	"return_5y",
+	"rsi"
+]);
 
-    if (!ticker) {
-      return res.status(400).json({ error: "Ticker is required" });
-    }
-    
-    // Validate ticker format (basic validation)
-    if (typeof ticker !== 'string' || ticker.length > 20 || !/^[A-Za-z0-9]+$/.test(ticker)) {
-      return res.status(400).json({ error: "Invalid ticker format" });
-    }
-
-    const data = await fetchCompanyOverview(ticker);
-
-    const symbolResult = await pool.query(
-      `
-      INSERT INTO symbols (ticker, exchange, company_name, sector, industry)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (ticker)
-      DO UPDATE SET ticker = EXCLUDED.ticker
-      RETURNING id
-      `,
-      [ticker, "NSE", data.Name, data.Sector, data.Industry]
-    );
-
-    const symbolId = symbolResult.rows[0].id;
-
-    await pool.query(
-      `
-      INSERT INTO fundamentals
-      (symbol_id, pe_ratio, market_cap, eps, debt_to_equity, promoter_holding)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (symbol_id)
-      DO UPDATE SET 
-        pe_ratio = EXCLUDED.pe_ratio,
-        market_cap = EXCLUDED.market_cap,
-        eps = EXCLUDED.eps,
-        debt_to_equity = EXCLUDED.debt_to_equity,
-        promoter_holding = EXCLUDED.promoter_holding
-      `,
-      [
-        symbolId,
-        data.PERatio,
-        data.MarketCapitalization,
-        data.EPS,
-        data.DebtToEquity,
-        data.PromoterHolding || 0
-      ]
-    );
-
-    res.json({ message: "Market data fetched and stored successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-}
-*/
-
-// This API reads stock data from database and enriches with REAL price data from Yahoo Finance
 async function getStocks(req, res) {
-  try {
-    console.log('[Stocks] Fetching stocks with real-time prices...');
-    
-    // Step 1: Get fundamental data from database
-    const result = await pool.query(`
-      SELECT
-        c.symbol,
-        c.name,
-        c.sector,
-        f.pe_ratio,
-        f.market_cap,
-        f.eps,
-        f.debt_to_fcf as debt_to_equity,
-        f.revenue_growth as roe,
-        f.peg_ratio,
-        f.updated_at
-      FROM companies c
-      LEFT JOIN fundamentals f ON f.symbol = c.symbol
-      ORDER BY c.symbol;
-    `);
+	try {
+		const search = (req.query.search || "").trim();
+		const minMarketCap = parseNumeric(req.query.min_market_cap_cr);
+		const maxMarketCap = parseNumeric(req.query.max_market_cap_cr);
+		const minPe = parseNumeric(req.query.min_pe_ratio);
+		const maxPe = parseNumeric(req.query.max_pe_ratio);
+		const limit = clamp(parseInt(req.query.limit, 10) || 100, 1, 500);
+		const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+		const sort = ALLOWED_SORT_FIELDS.has(req.query.sort) ? req.query.sort : "market_cap_cr";
+		const order = (req.query.order || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const stocks = result.rows;
-    console.log(`[Stocks] Found ${stocks.length} stocks in database`);
+		const where = [];
+		const params = [];
 
-    // Step 2: Get real-time prices from Yahoo Finance for all stocks
-    const symbols = stocks.map(s => s.symbol);
-    const priceData = await marketDataService.getBulkRealtimeData(symbols);
-    
-    // Create a map for quick lookup
-    const priceMap = new Map(priceData.map(p => [p.symbol, p]));
-    
-    console.log(`[Stocks] Fetched real-time prices for ${priceData.length}/${symbols.length} stocks`);
+		if (search) {
+			params.push(`%${search}%`);
+			where.push(`name ILIKE $${params.length}`);
+		}
 
-    // Step 3: Merge fundamental data with real-time prices
-    const enrichedStocks = stocks.map(stock => {
-      const prices = priceMap.get(stock.symbol);
-      
-      // Convert PostgreSQL numeric strings to numbers
-      const numericStock = {
-        ...stock,
-        pe_ratio: parseFloat(stock.pe_ratio) || null,
-        market_cap: parseFloat(stock.market_cap) || null,
-        eps: parseFloat(stock.eps) || null,
-        debt_to_equity: parseFloat(stock.debt_to_equity) || null,
-        roe: parseFloat(stock.roe) || null,
-        peg_ratio: parseFloat(stock.peg_ratio) || null
-      };
-      
-      if (prices && !prices.isMock) {
-        // Real price data available
-        return {
-          ...numericStock,
-          current_price: prices.currentPrice,
-          previous_close: prices.previousClose,
-          change_percent: prices.changePercent,
-          volume: prices.volume,
-          high: prices.high,
-          low: prices.low,
-          open: prices.open,
-          last_update: prices.lastUpdate,
-          data_source: 'YAHOO_FINANCE',
-          is_real_data: true
-        };
-      } else {
-        // Fallback: Use database market_cap and PE for estimation (with clear flag)
-        const estimatedPrice = numericStock.market_cap && numericStock.pe_ratio 
-          ? (numericStock.market_cap / 1000000000.0 * numericStock.pe_ratio / 10.0) 
-          : 0;
-        
-        return {
-          ...numericStock,
-          current_price: estimatedPrice,
-          previous_close: estimatedPrice * 0.99,
-          change_percent: 1.0,
-          volume: 0,
-          data_source: 'ESTIMATED_FROM_FUNDAMENTALS',
-          is_real_data: false,
-          warning: 'Estimated price - real-time data unavailable'
-        };
-      }
-    });
+		if (minMarketCap !== null) {
+			params.push(minMarketCap);
+			where.push(`market_cap_cr >= $${params.length}`);
+		}
 
-    console.log(`[Stocks] Returning ${enrichedStocks.length} stocks with prices`);
+		if (maxMarketCap !== null) {
+			params.push(maxMarketCap);
+			where.push(`market_cap_cr <= $${params.length}`);
+		}
 
-    res.json({
-      success: true,
-      data: enrichedStocks,
-      count: enrichedStocks.length,
-      realDataCount: enrichedStocks.filter(s => s.is_real_data).length,
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('[Stocks] Error fetching stocks:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch stocks from database',
-      message: error.message
-    });
-  }
+		if (minPe !== null) {
+			params.push(minPe);
+			where.push(`pe_ratio >= $${params.length}`);
+		}
+
+		if (maxPe !== null) {
+			params.push(maxPe);
+			where.push(`pe_ratio <= $${params.length}`);
+		}
+
+		let sql = `SELECT * FROM dhan_stocks`;
+		if (where.length > 0) {
+			sql += ` WHERE ${where.join(" AND ")}`;
+		}
+
+		params.push(limit);
+		params.push(offset);
+		sql += ` ORDER BY ${sort} ${order} NULLS LAST LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+		const [stocksResult, freshnessResult] = await Promise.all([
+			pool.query(sql, params),
+			pool.query("SELECT MAX(updated_at) AS last_updated FROM dhan_stocks")
+		]);
+
+		const lastUpdated = freshnessResult.rows[0]?.last_updated || null;
+
+		const metadata = {
+			...DataFreshnessService.augmentBatchResponse(
+				stocksResult.rows,
+				lastUpdated,
+				"DHAN_CSV"
+			).metadata,
+			query_params: {
+				search,
+				filters: { minMarketCap, maxMarketCap, minPe, maxPe },
+				sort,
+				order,
+				limit,
+				offset
+			}
+		};
+
+		res.json(responseFormatter.list(stocksResult.rows, metadata));
+	} catch (error) {
+		logger.error(logger.LOG_CATEGORIES.API, 'Get stocks error', { error: error.message });
+		res.status(500).json(
+			responseFormatter.error(
+				'Failed to retrieve stock data',
+				'STOCKS_FETCH_ERROR',
+				{ detail: error.message }
+			)
+		);
+	}
 }
 
-module.exports = { getStocks };
+function parseNumeric(value) {
+	if (value === undefined || value === null || value === "") {
+		return null;
+	}
+
+	const cleaned = String(value).trim().replace(/,/g, "").replace(/%/g, "");
+	if (cleaned === "" || cleaned === "-") {
+		return null;
+	}
+
+	const parsed = Number(cleaned);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+function clamp(value, min, max) {
+	if (!Number.isFinite(value)) {
+		return min;
+	}
+
+	return Math.min(Math.max(value, min), max);
+}
+
+module.exports = {
+	getStocks
+};

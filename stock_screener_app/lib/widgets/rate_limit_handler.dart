@@ -64,8 +64,8 @@ class RateLimitBanner extends StatefulWidget {
     required this.error,
     this.onRetry,
     this.autoHideDuration = const Duration(seconds: 8),
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<RateLimitBanner> createState() => _RateLimitBannerState();
@@ -129,7 +129,7 @@ class _RateLimitBannerState extends State<RateLimitBanner> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '⏱️ API Rate Limited',
+                  'API Rate Limited',
                   style: TextStyle(
                     color: Colors.red[700],
                     fontSize: 13,
@@ -164,7 +164,7 @@ class _RateLimitBannerState extends State<RateLimitBanner> {
                 ),
                 child: Text(
                   canRetry
-                      ? '✅ Ready to retry'
+                      ? 'Ready to retry'
                       : 'Retry in ${_remainingTime.inSeconds}s',
                   style: TextStyle(
                     color: canRetry ? Colors.green[700] : Colors.red[700],
@@ -203,7 +203,7 @@ class _RateLimitBannerState extends State<RateLimitBanner> {
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              '💡 Tip: Close and reopen the app to reset the rate limit counter',
+              'Tip: Close and reopen the app to reset the rate limit counter',
               style: TextStyle(
                 color: Colors.grey[700],
                 fontSize: 11,

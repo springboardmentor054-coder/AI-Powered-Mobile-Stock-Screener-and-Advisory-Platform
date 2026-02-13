@@ -177,8 +177,18 @@ class ConditionEvaluationService {
       return true; // First evaluation is always a "change"
     }
 
-    // Deep comparison of JSON objects
-    return JSON.stringify(previousState) !== JSON.stringify(currentState);
+    const normalizeState = (state) => {
+      if (!state || typeof state !== 'object') {
+        return state;
+      }
+
+      const normalized = { ...state };
+      delete normalized.evaluated_at;
+      return normalized;
+    };
+
+    // Deep comparison without timestamp noise
+    return JSON.stringify(normalizeState(previousState)) !== JSON.stringify(normalizeState(currentState));
   }
 
   /**
@@ -252,12 +262,13 @@ class ConditionEvaluationService {
       'pe_ratio_change': () => {
         const oldPe = previousState?.pe_ratio || 0;
         const newPe = currentState.pe_ratio;
-        const change = ((newPe - oldPe) / oldPe * 100).toFixed(2);
+        const change = oldPe === 0 ? null : ((newPe - oldPe) / oldPe * 100).toFixed(2);
+        const changeLabel = change === null ? 'N/A' : `${change > 0 ? '+' : ''}${change}%`;
         return {
-          severity: Math.abs(change) > 20 ? 'high' : 'medium',
+          severity: change === null ? 'medium' : Math.abs(change) > 20 ? 'high' : 'medium',
           title: `PE Ratio Changed: ${currentState.symbol}`,
-          description: `PE Ratio changed from ${oldPe.toFixed(2)} to ${newPe.toFixed(2)} (${change > 0 ? '+' : ''}${change}%)`,
-          metadata: { old_pe: oldPe, new_pe: newPe, change_percent: change }
+          description: `PE Ratio changed from ${oldPe.toFixed(2)} to ${newPe.toFixed(2)} (${changeLabel})`,
+          metadata: { old_pe: oldPe, new_pe: newPe, change_percent: change ?? 'N/A' }
         };
       },
       'revenue_growth_high': () => {

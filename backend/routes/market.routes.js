@@ -1,7 +1,25 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../database");
-const marketDataService = require('../services/realTimeMarketData.service');
+const finnhubService = require('../services/finnhub.service');
+
+const TIMEFRAMES = {
+  '1D': { resolution: '5', days: 1 },
+  '1W': { resolution: '30', days: 7 },
+  '1M': { resolution: '60', days: 30 },
+  '3M': { resolution: 'D', days: 90 },
+  '1Y': { resolution: 'D', days: 365 },
+  '5Y': { resolution: 'W', days: 1825 }
+};
+
+function buildTimeRange(timeframe, resolutionOverride) {
+  const key = String(timeframe || '1D').toUpperCase();
+  const config = TIMEFRAMES[key] || TIMEFRAMES['1D'];
+  const resolution = resolutionOverride || config.resolution;
+  const to = Math.floor(Date.now() / 1000);
+  const from = to - config.days * 24 * 60 * 60;
+  return { resolution, from, to, timeframe: key };
+}
 
 /**
  * GET /stocks/:symbol/quote
@@ -11,8 +29,8 @@ router.get("/stocks/:symbol/quote", async (req, res) => {
   try {
     const { symbol } = req.params;
     
-    // Fetch real-time data from Yahoo Finance
-    const realtimeData = await marketDataService.getRealtimeData(symbol);
+    // Fetch real-time data from Finnhub
+    const realtimeData = await finnhubService.getQuote(symbol);
     
     // Get fundamental data from database
     const result = await pool.query(
@@ -125,6 +143,46 @@ router.get("/market/overview", async (req, res) => {
 });
 
 /**
+ * GET /market/candles/:symbol
+ * Get candlestick data (OHLC + volume) for a stock
+ * Query: timeframe=1D|1W|1M|3M|1Y|5Y, resolution, from, to
+ */
+router.get('/market/candles/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { timeframe = '1D', resolution, from, to } = req.query;
+
+    const range = buildTimeRange(timeframe, resolution);
+    const fromSec = Number.isFinite(Number(from)) ? parseInt(from, 10) : range.from;
+    const toSec = Number.isFinite(Number(to)) ? parseInt(to, 10) : range.to;
+
+    const data = await finnhubService.getCandles(symbol, range.resolution, fromSec, toSec);
+
+    res.json({
+      success: true,
+      data: {
+        symbol: data.symbol,
+        timeframe: range.timeframe,
+        resolution: range.resolution,
+        from: fromSec,
+        to: toSec,
+        candles: data.candles,
+        data_source: data.data_source,
+        is_real_data: data.is_real_data,
+        is_delayed: data.is_delayed,
+        delay_minutes: data.delay_minutes
+      }
+    });
+  } catch (error) {
+    console.error('Candle data error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch candle data'
+    });
+  }
+});
+
+/**
  * GET /stocks/:symbol/chart
  * Get intraday chart data for a stock
  */
@@ -167,13 +225,32 @@ router.get("/stocks/:symbol/chart", async (req, res) => {
 
 /**
  * GET /realtime/:symbol
- * Get real-time data for a single stock from Yahoo Finance
+ * Get real-time data for a single stock from Finnhub
  */
 router.get('/realtime/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    const data = await marketDataService.getRealtimeData(symbol);
+    const data = await finnhubService.getQuote(symbol);
     
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Real-time data error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch real-time data'
+    });
+  }
+});
+
+// Alias under /market for frontend consistency
+router.get('/market/realtime/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await finnhubService.getQuote(symbol);
+
     res.json({
       success: true,
       data: data
@@ -189,7 +266,7 @@ router.get('/realtime/:symbol', async (req, res) => {
 
 /**
  * POST /realtime/bulk
- * Get real-time data for multiple stocks
+ * Get real-time data for multiple stocks from Finnhub
  * Body: { symbols: ['TCS', 'INFY', 'HDFCBANK'] }
  */
 router.post('/realtime/bulk', async (req, res) => {
@@ -203,8 +280,36 @@ router.post('/realtime/bulk', async (req, res) => {
       });
     }
 
-    const data = await marketDataService.getBulkRealtimeData(symbols);
+    const data = await finnhubService.getQuotes(symbols);
     
+    res.json({
+      success: true,
+      count: data.length,
+      data: data
+    });
+  } catch (error) {
+    console.error('Bulk real-time data error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bulk real-time data'
+    });
+  }
+});
+
+// Alias under /market for frontend consistency
+router.post('/market/realtime/bulk', async (req, res) => {
+  try {
+    const { symbols } = req.body;
+
+    if (!symbols || !Array.isArray(symbols)) {
+      return res.status(400).json({
+        success: false,
+        error: 'symbols array is required'
+      });
+    }
+
+    const data = await finnhubService.getQuotes(symbols);
+
     res.json({
       success: true,
       count: data.length,
@@ -226,18 +331,54 @@ router.post('/realtime/bulk', async (req, res) => {
 router.get('/intraday/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    const data = await marketDataService.getIntradayData(symbol);
-    
-    if (!data) {
-      return res.status(404).json({
-        success: false,
-        error: 'Data not available'
-      });
-    }
+    const range = buildTimeRange('1D', '5');
+    const data = await finnhubService.getCandles(symbol, range.resolution, range.from, range.to);
 
     res.json({
       success: true,
-      data: data
+      data: {
+        symbol: data.symbol,
+        timeframe: '1D',
+        resolution: range.resolution,
+        from: range.from,
+        to: range.to,
+        candles: data.candles,
+        data_source: data.data_source,
+        is_real_data: data.is_real_data,
+        is_delayed: data.is_delayed,
+        delay_minutes: data.delay_minutes
+      }
+    });
+  } catch (error) {
+    console.error('Intraday data error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch intraday data'
+    });
+  }
+});
+
+// Alias under /market for frontend consistency
+router.get('/market/intraday/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const range = buildTimeRange('1D', '5');
+    const data = await finnhubService.getCandles(symbol, range.resolution, range.from, range.to);
+
+    res.json({
+      success: true,
+      data: {
+        symbol: data.symbol,
+        timeframe: '1D',
+        resolution: range.resolution,
+        from: range.from,
+        to: range.to,
+        candles: data.candles,
+        data_source: data.data_source,
+        is_real_data: data.is_real_data,
+        is_delayed: data.is_delayed,
+        delay_minutes: data.delay_minutes
+      }
     });
   } catch (error) {
     console.error('Intraday data error:', error);

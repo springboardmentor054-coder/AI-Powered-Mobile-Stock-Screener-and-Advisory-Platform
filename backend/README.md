@@ -2,7 +2,7 @@
 
 A production-ready Node.js backend for an AI-powered stock screening application with natural language query support.
 
-## 🚀 Features
+## Features
 
 - **Market Data Integration**: Fetch stock fundamentals from Alpha Vantage API
 - **AI Query Parser**: Convert natural language queries to structured filters using LLM
@@ -11,14 +11,14 @@ A production-ready Node.js backend for an AI-powered stock screening application
 - **Security**: SQL injection protection, rate limiting, CORS support
 - **Educational**: Comprehensive comments explaining every concept
 
-## 📋 Prerequisites
+## Prerequisites
 
 - **Node.js** (v16 or higher)
 - **PostgreSQL** (v12 or higher)
 - **Alpha Vantage API Key** (free at https://www.alphavantage.co/support/#api-key)
 - **OpenAI API Key** (optional, for LLM features)
 
-## 🛠️ Installation
+## Installation
 
 ### 1. Clone and Install Dependencies
 
@@ -68,7 +68,7 @@ ALPHA_VANTAGE_API_KEY=your_api_key_here
 OPENAI_API_KEY=your_openai_key_here
 ```
 
-## 🎯 Running the Server
+## Running the Server
 
 ### Development Mode (with auto-reload)
 ```bash
@@ -82,17 +82,17 @@ npm start
 
 You should see:
 ```
-🚀 Starting AI Stock Screener Backend...
-📊 Connecting to database...
-✅ Database ready
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 Server running on port 3000
-📡 Health check: http://localhost:3000/health
-🔍 API docs: http://localhost:3000/
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Starting AI Stock Screener Backend...
+Connecting to database...
+Database ready
+================================================
+Server running on port 3000
+Health check: http://localhost:3000/health
+API docs: http://localhost:3000/
+================================================
 ```
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### 1. Health Check
 ```http
@@ -219,7 +219,7 @@ Content-Type: application/json
 }
 ```
 
-## 🗄️ Database Schema
+## Database Schema
 
 ### Symbols Table
 ```sql
@@ -249,7 +249,7 @@ CREATE TABLE fundamentals (
 );
 ```
 
-## 🧪 Testing the APIs
+## Testing the APIs
 
 ### Using cURL
 
@@ -273,7 +273,7 @@ curl -X POST http://localhost:3000/stocks/query \
 2. Set base URL: `http://localhost:3000`
 3. Test each endpoint
 
-## 🔧 Project Structure
+## Project Structure
 
 ```
 backend/
@@ -292,7 +292,7 @@ backend/
 └── README.md                 # Documentation
 ```
 
-## 🎓 How It Works
+## How It Works
 
 ### Architecture Overview
 
@@ -334,7 +334,7 @@ Flutter App → Express API → LLM Parser → SQL Builder → PostgreSQL
 - ✅ **Helmet.js**: Security headers
 - ✅ **CORS**: Controlled cross-origin access
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Database Connection Error
 ```
@@ -370,7 +370,7 @@ lsof -i :3000                 # Linux/Mac
 # Kill the process or change PORT in .env
 ```
 
-## 📚 Learning Resources
+## Learning Resources
 
 ### Concepts Explained in Code
 
@@ -391,7 +391,7 @@ Each file contains detailed comments explaining:
 7. **MVC Architecture**: Separation of concerns
 8. **LLM Integration**: Prompt engineering, response parsing
 
-## 🔮 Next Steps (Sprint 3+)
+## Next Steps (Sprint 3+)
 
 - [ ] Add authentication (JWT)
 - [ ] Implement caching (Redis)
@@ -404,16 +404,16 @@ Each file contains detailed comments explaining:
 - [ ] Docker containerization
 - [ ] CI/CD pipeline
 
-## 📄 License
+## License
 
 MIT
 
-## 👨‍💻 Author
+## Author
 
 Built as an educational project for B.Tech students learning backend development.
 
 ---
 
-**Happy Coding! 🚀**
+**Happy Coding!**
 
 For questions or issues, check the code comments or create an issue on GitHub.

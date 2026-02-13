@@ -9,8 +9,8 @@ class FreshnessIndicator extends StatelessWidget {
   const FreshnessIndicator({
     this.freshness,
     this.onRefresh,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,7 @@ class FreshnessIndicator extends StatelessWidget {
 
     final status = freshness!['status'] ?? 'UNKNOWN';
     final ageMinutes = freshness!['age_minutes'] ?? -1;
-    final badge = freshness!['delay_badge'] ?? '❌ Unknown';
+    final badge = freshness!['delay_badge'] ?? 'Unknown';
     final warning = freshness!['warning'] ?? '';
     final color = _getColorForStatus(status);
 
@@ -142,8 +142,8 @@ class StaleDataWarning extends StatelessWidget {
   const StaleDataWarning({
     required this.freshness,
     this.title,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +179,7 @@ class StaleDataWarning extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  title ?? (isVeryStale ? '⚠️ Critical: Old Data' : '⏱️ Delayed Data'),
+                  title ?? (isVeryStale ? 'Critical: Old Data' : 'Delayed Data'),
                   style: TextStyle(
                     color: color,
                     fontSize: 13,
@@ -236,8 +236,8 @@ class LastUpdatedWidget extends StatelessWidget {
   const LastUpdatedWidget({
     this.lastUpdated,
     this.showRelativeTime = true,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
