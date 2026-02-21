@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import './QueryInput.css'
+import { useAppStore } from "../store/useAppStore";
+import "./QueryInput.css";
 
 function QueryInput({ onSubmit, loading }) {
-  const [query, setQuery] = useState('')
+  const { query, setQuery } = useAppStore();
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (query.trim() && !loading) {
-      onSubmit(query.trim())
+      onSubmit(query.trim());
     }
-  }
+  };
 
   return (
     <form className="query-input" onSubmit={handleSubmit}>
@@ -22,16 +22,16 @@ function QueryInput({ onSubmit, loading }) {
           disabled={loading}
           className="query-textarea"
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading || !query.trim()}
           className="submit-button"
         >
-          {loading ? 'Processing...' : 'Search'}
+          {loading ? "Processing..." : "Search"}
         </button>
       </div>
     </form>
-  )
+  );
 }
 
-export default QueryInput
+export default QueryInput;

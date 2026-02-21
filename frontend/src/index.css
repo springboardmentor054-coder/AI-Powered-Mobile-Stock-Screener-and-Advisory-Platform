@@ -1,21 +1,48 @@
+/* =========================
+   Global Reset
+========================= */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
-  padding: 20px;
+/* =========================
+   HTML & Body
+========================= */
+html, body {
+  width: 100%;
+  min-height: 100%;
 }
 
+/* IMPORTANT:
+   ❌ No gradient on body
+   ❌ No height: 100vh lock
+   ❌ No overflow hidden
+*/
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  background: #f3f4f6;   /* neutral background */
+  color: #111827;
+}
+
+/* =========================
+   Root Container
+========================= */
+#root {
+  min-height: 100%;
+}
+
+/* =========================
+   Code blocks (optional)
+========================= */
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }

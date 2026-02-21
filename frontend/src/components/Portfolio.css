@@ -1,0 +1,39 @@
+.portfolio {
+  margin-top: 32px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.portfolio-summary {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px 0;
+}
+
+.profit {
+  color: green;
+  font-weight: bold;
+}
+
+.loss {
+  color: red;
+  font-weight: bold;
+}
+
+.portfolio ul {
+  list-style: none;
+  padding: 0;
+}
+
+.portfolio li {
+  padding: 6px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.portfolio.empty {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f3f4f6;
+  border-radius: 12px;
+}

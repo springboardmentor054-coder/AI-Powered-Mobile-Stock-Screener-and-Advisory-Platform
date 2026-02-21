@@ -1,0 +1,13 @@
+.triggered-alerts {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fff7ed;
+  border-radius: 12px;
+}
+
+.alert-card {
+  padding: 8px;
+  margin-top: 8px;
+  background: #ffedd5;
+  border-radius: 6px;
+}

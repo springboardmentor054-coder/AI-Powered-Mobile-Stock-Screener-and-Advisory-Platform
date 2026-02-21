@@ -1,0 +1,59 @@
+/* Overlay */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 999999;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Drawer panel */
+.drawer {
+  width: 400px;
+  height: 100vh; /* ✅ safer than 100% */
+  background: #ffffff;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  overflow-y: auto;
+  overflow-x: hidden; /* ✅ prevent sideways scroll */
+  animation: slideIn 0.25s ease-out;
+}
+
+/* Header */
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-header button {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Content */
+.drawer-content {
+  margin-top: 16px;
+}
+
+.drawer-content input,
+.drawer-content select,
+.drawer-content button {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px;
+}
+
+/* Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

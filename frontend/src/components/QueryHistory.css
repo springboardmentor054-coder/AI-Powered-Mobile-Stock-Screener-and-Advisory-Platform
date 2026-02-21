@@ -1,0 +1,34 @@
+.query-history {
+  margin-top: 12px;
+  padding: 10px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.query-history h4 {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #555;
+}
+
+.query-history ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.query-history li {
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.query-history li:hover {
+  background-color: #eef2f7;
+}
+
+.query-history small {
+  color: #888;
+}

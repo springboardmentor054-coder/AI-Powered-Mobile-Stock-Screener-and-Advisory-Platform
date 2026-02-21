@@ -1,0 +1,33 @@
+.alerts {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.alerts ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alerts.empty {
+  text-align: center;
+  color: #777;
+}
+
+.alert-item .remove {
+  color: #d32f2f;
+  cursor: pointer;
+}
