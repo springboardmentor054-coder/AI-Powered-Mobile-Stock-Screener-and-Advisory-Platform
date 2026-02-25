@@ -1,5 +1,6 @@
 databases:
   - name: stock-screener-db
+    plan: free
     databaseName: stock_screener
     user: stock_screener_user
 
@@ -7,8 +8,11 @@ services:
   - type: web
     name: stock-screener-backend
     env: node
+    plan: free
+    autoDeployTrigger: commit
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm ci --omit=dev
+    preDeployCommand: npm run db:init
     startCommand: npm start
     healthCheckPath: /health
     envVars:
