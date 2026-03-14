@@ -1,5 +1,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const pool = require('../config/database');
+const { generateAlertsForWishlistChanges } = require('../services/alertService');
 
 /**
  * This script captures daily snapshots of all wishlisted stocks
@@ -38,7 +39,7 @@ async function captureWishlistSnapshots() {
           SELECT 
             s.symbol,
             s.market_cap,
-            f.pe_ratio,
+            f.pe_ratio as static_pe_ratio,
             f.pb_ratio,
             f.eps,
             f.dividend_yield,
@@ -47,7 +48,17 @@ async function captureWishlistSnapshots() {
             ph.high,
             ph.low,
             ph.volume,
-            ph.close as close_price
+            ph.close as close_price,
+            -- Calculate dynamic P/E ratio based on current price and round to 2 decimal places
+            ROUND(
+              CAST(
+                CASE 
+                  WHEN f.eps IS NOT NULL AND f.eps > 0 AND COALESCE(ead.current_price, ph.close, ph.adjusted_close) IS NOT NULL
+                  THEN COALESCE(ead.current_price, ph.close, ph.adjusted_close) / f.eps
+                  ELSE f.pe_ratio
+                END AS NUMERIC
+              ), 2
+            ) as pe_ratio
           FROM stocks s
           LEFT JOIN fundamentals f ON s.symbol = f.symbol
           LEFT JOIN earnings_analyst_data ead ON s.symbol = ead.symbol
@@ -154,6 +165,15 @@ async function captureWishlistSnapshots() {
     console.log(`\n📊 Snapshot capture complete:`);
     console.log(`   ✅ Success: ${successCount}`);
     console.log(`   ❌ Errors: ${errorCount}`);
+    
+    // Generate alerts for changes detected in snapshots
+    console.log('\n🔔 Generating alerts for detected changes...');
+    try {
+      const alertResult = await generateAlertsForWishlistChanges();
+      console.log(`✅ Generated ${alertResult.alertsGenerated} alerts`);
+    } catch (alertError) {
+      console.error('❌ Error generating alerts:', alertError.message);
+    }
     
     process.exit(errorCount > 0 ? 1 : 0);
 

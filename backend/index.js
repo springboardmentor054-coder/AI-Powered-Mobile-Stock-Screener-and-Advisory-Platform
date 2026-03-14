@@ -9,6 +9,7 @@ const stockRoutes = require("./routes/stocks");
 const screenerRoutes = require("./routes/screener");
 const wishlistRoutes = require("./routes/wishlist");
 const pricesRoutes = require("./routes/prices");
+const alertRoutes = require("./routes/alerts");
 
 const app = express();
 
@@ -110,6 +111,7 @@ app.use("/api/stocks", stockRoutes);
 app.use("/api/screener", screenerRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/prices", pricesRoutes);
+app.use("/api/alerts", alertRoutes);
 
 const PORT = process.env.PORT || 5000;
 const HOST = '0.0.0.0'; // Listen on all network interfaces

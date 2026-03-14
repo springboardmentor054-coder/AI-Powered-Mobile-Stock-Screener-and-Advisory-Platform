@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class ApiService {
-  // Update this to your backend URL
-  // For Android Emulator: use 10.0.2.2 instead of localhost
-  // For iOS Simulator: use localhost
-  // For physical device: use your computer's IP address
-  // For Chrome web: use localhost (127.0.0.1 may have CORS issues)
-  static const String baseUrl = 'http://localhost:5000';
+  // Using ApiConfig for automatic platform detection
+  // Android Emulator: 10.0.2.2
+  // iOS Simulator/Web/Desktop: localhost
+  // Physical Device: Update ApiConfig with your computer's IP
+  static String get baseUrl => ApiConfig.baseUrl;
   
   // Helper method to make GET requests
   static Future<dynamic> get(String endpoint, {String? token}) async {

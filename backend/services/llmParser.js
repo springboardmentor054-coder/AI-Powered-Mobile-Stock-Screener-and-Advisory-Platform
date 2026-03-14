@@ -25,6 +25,7 @@ const VALID_FIELDS = [
   'revenue', 'ebitda', 'revenue_yoy_growth', 'ebitda_yoy_growth',
   'gross_profit', 'operating_income', 'net_income', 'gross_margin',
   'net_margin', 'eps_basic', 'eps_diluted',
+  // Note: quarterly_financials uses 'symbol' to link companies, not 'company_id'
   // Earnings table
   'earnings_date', 'estimated_eps', 'expected_revenue', 'beat_probability',
   'analyst_target_price_low', 'analyst_target_price_high', 'current_price',
@@ -48,7 +49,7 @@ Database Schema:
 - financials: revenue, ebitda, revenue_yoy_growth, ebitda_yoy_growth, gross_margin, net_margin
 - earnings_analyst_data: earnings_date, estimated_eps, beat_probability, analyst_target_price_low, analyst_target_price_high, analyst_count, consensus_rating
 - corporate_actions: action_type (stock_buyback, dividend, stock_split), announcement_date, amount
-- quarterly_financials: company_id, quarter (DATE), revenue, net_income, gross_profit, operating_income
+- quarterly_financials: symbol (links to stocks.symbol), quarter (DATE), revenue, net_income, gross_profit, operating_income
 
 Valid operators: <, >, <=, >=, =, !=
 
@@ -114,10 +115,10 @@ Query: "IT companies with PEG ratio less than 1.5"
 Output: {"sector": "Technology", "symbol": null, "companyName": null, "conditions": [{"field": "peg_ratio", "operator": "<", "value": 1.5}], "specialFilters": {}}
 
 Query: "Companies with 4 consecutive profitable quarters in the last 12 months"
-Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "timeFilters": {"quarterRange": {"value": 12, "unit": "months"}}, "groupBy": {"fields": ["company_id"], "aggregates": [{"function": "MIN", "field": "revenue", "alias": "min_revenue"}]}, "having": [{"expression": "COUNT(*)", "operator": "=", "value": 4}, {"aggregate": "MIN", "field": "revenue", "operator": ">", "value": 0}], "specialFilters": {}}
+Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "timeFilters": {"quarterRange": {"value": 12, "unit": "months"}}, "groupBy": {"fields": ["symbol"], "aggregates": [{"function": "MIN", "field": "net_income", "alias": "min_net_income"}]}, "having": [{"expression": "COUNT(*)", "operator": "=", "value": 4}, {"aggregate": "MIN", "field": "net_income", "operator": ">", "value": 0}], "specialFilters": {}}
 
 Query: "Companies reporting revenue growth in every quarter of the past year"
-Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "timeFilters": {"quarterRange": {"value": 12, "unit": "months"}}, "groupBy": {"fields": ["company_id"], "aggregates": [{"function": "MIN", "field": "revenue", "alias": "min_revenue"}]}, "having": [{"aggregate": "MIN", "field": "revenue", "operator": ">", "value": 0}, {"expression": "COUNT(*)", "operator": ">=", "value": 4}], "specialFilters": {}}
+Output: {"sector": null, "symbol": null, "companyName": null, "conditions": [], "timeFilters": {"quarterRange": {"value": 12, "unit": "months"}}, "groupBy": {"fields": ["symbol"], "aggregates": [{"function": "MIN", "field": "revenue", "alias": "min_revenue"}]}, "having": [{"aggregate": "MIN", "field": "revenue", "operator": ">", "value": 0}, {"expression": "COUNT(*)", "operator": ">=", "value": 4}], "specialFilters": {}}
 
 Query: "Financial stocks with PE ratio below 15 and promoter holding above 50%"
 Output: {"sector": "Financials", "symbol": null, "companyName": null, "conditions": [{"field": "pe_ratio", "operator": "<", "value": 15}, {"field": "promoter_holding_percentage", "operator": ">", "value": 50}], "specialFilters": {}}

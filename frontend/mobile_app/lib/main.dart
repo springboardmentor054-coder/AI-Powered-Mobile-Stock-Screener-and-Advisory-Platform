@@ -19,10 +19,15 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8B7355),
+          seedColor: const Color(0xFFB8956A),
           brightness: Brightness.light,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF5F5F0),
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        appBarTheme: const AppBarThemeData(
+          backgroundColor: Color(0xFFFAF7F2),
+          foregroundColor: Color(0xFF4A4238),
+          elevation: 0,
+        ),
         cardTheme: const CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -42,7 +47,7 @@ class MyApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF8B7355), width: 2),
+            borderSide: const BorderSide(color: Color(0xFFB8956A), width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -54,6 +59,7 @@ class MyApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             elevation: 0,
+            backgroundColor: const Color(0xFFB8956A),
             padding: const EdgeInsets.symmetric(vertical: 18),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

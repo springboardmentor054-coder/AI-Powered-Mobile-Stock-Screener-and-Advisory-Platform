@@ -18,7 +18,7 @@ const FIELD_TO_TABLE = {
   'institutional_ownership_percentage': 's',
   // Quarterly financials table (for time-based queries)
   'quarter': 'qf', 'revenue': 'qf', 'net_income': 'qf', 
-  'gross_profit': 'qf', 'operating_income': 'qf', 'company_id': 'qf'
+  'gross_profit': 'qf', 'operating_income': 'qf'
 };
 
 // Fields that represent percentages (stored as decimals: 0.2 = 20%)
@@ -124,7 +124,9 @@ function compileDSLToSQL(dsl) {
       s.company_name, 
       s.sector,
       s.industry,
+      s.exchange,
       s.market_cap,
+      COALESCE(ead.current_price, latest_price.close) as current_price,
       f.pe_ratio,
       f.pb_ratio,
       f.peg_ratio,
@@ -142,7 +144,15 @@ function compileDSLToSQL(dsl) {
       ROUND(CAST(sh.promoter_holding_percentage AS numeric), 2) as promoter_holding
     FROM stocks s
     LEFT JOIN fundamentals f ON s.symbol = f.symbol
-    LEFT JOIN shareholding sh ON s.symbol = sh.symbol`;
+    LEFT JOIN shareholding sh ON s.symbol = sh.symbol
+    LEFT JOIN earnings_analyst_data ead ON s.symbol = ead.symbol
+    LEFT JOIN LATERAL (
+      SELECT close
+      FROM price_history
+      WHERE symbol = s.symbol
+      ORDER BY date DESC
+      LIMIT 1
+    ) latest_price ON true`;
     }
     
     baseQuery += `
@@ -221,9 +231,13 @@ function compileDSLToSQL(dsl) {
       });
       baseQuery += groupFields.join(', ');
       
-      // Add non-aggregated SELECT fields to GROUP BY
+      // Add non-aggregated SELECT fields to GROUP BY (avoid duplicates)
       if (needsQuarterlyJoin) {
-        baseQuery += `, s.symbol, s.company_name, s.sector`;
+        const hasSymbol = dsl.groupBy.fields.includes('symbol');
+        if (!hasSymbol) {
+          baseQuery += `, s.symbol`;
+        }
+        baseQuery += `, s.company_name, s.sector`;
       }
     }
     

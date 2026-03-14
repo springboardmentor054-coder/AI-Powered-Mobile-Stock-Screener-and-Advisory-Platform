@@ -18,17 +18,24 @@ router.get('/', authMiddleware, async (req, res) => {
         s.industry,
         s.exchange,
         s.market_cap,
-        f.pe_ratio,
         f.pb_ratio,
         f.eps,
         f.profit_margin,
         f.dividend_yield,
         f.beta,
         
-        -- Get current price from earnings_analyst_data or latest price_history
-        COALESCE(ead.current_price, latest_price.close, latest_price.adjusted_close) as current_price,
+        -- Get current price from earnings_analyst_data, today's snapshot, or latest price_history
+        COALESCE(ead.current_price, today_snapshot.current_price, latest_price.close, latest_price.adjusted_close) as current_price,
+
+        -- Latest available price_history fields for fallback insights
+        latest_price.date as latest_date,
+        latest_price.open as latest_open,
+        latest_price.high as latest_high,
+        latest_price.low as latest_low,
+        latest_price.close as latest_close,
+        latest_price.volume as latest_volume,
         
-        -- Today's snapshot data
+        -- Today's snapshot data (only from CURRENT_DATE)
         today_snapshot.open_price as today_open,
         today_snapshot.high_price as today_high,
         today_snapshot.low_price as today_low,
@@ -37,13 +44,20 @@ router.get('/', authMiddleware, async (req, res) => {
         today_snapshot.price_change_percentage,
         today_snapshot.volume_change_percentage,
         today_snapshot.current_price as today_price,
+        today_snapshot.snapshot_date as today_date,
+        ROUND(CAST(COALESCE(today_snapshot.pe_ratio, f.pe_ratio) AS NUMERIC), 2) as pe_ratio,
         
-        -- Yesterday's snapshot data
-        yesterday_snapshot.current_price as yesterday_price,
+        -- Yesterday's snapshot data (only from CURRENT_DATE - 1)
+        COALESCE(yesterday_snapshot.current_price, previous_price.close, previous_price.adjusted_close) as yesterday_price,
         yesterday_snapshot.volume as yesterday_volume,
-        yesterday_snapshot.pe_ratio as yesterday_pe_ratio,
+        ROUND(CAST(yesterday_snapshot.pe_ratio AS NUMERIC), 2) as yesterday_pe_ratio,
         yesterday_snapshot.market_cap as yesterday_market_cap,
-        yesterday_snapshot.snapshot_date as yesterday_date
+        yesterday_snapshot.snapshot_date as yesterday_date,
+
+        -- Previous available price_history fields for fallback insights
+        previous_price.date as previous_date,
+        previous_price.close as previous_close,
+        previous_price.volume as previous_volume
         
       FROM wishlist w
       LEFT JOIN stocks s ON w.symbol = s.symbol
@@ -52,14 +66,24 @@ router.get('/', authMiddleware, async (req, res) => {
       
       -- Get latest price from price_history as fallback
       LEFT JOIN LATERAL (
-        SELECT close, adjusted_close
+        SELECT date, open, high, low, close, volume, adjusted_close
         FROM price_history
         WHERE symbol = w.symbol
         ORDER BY date DESC
         LIMIT 1
       ) latest_price ON true
+
+      -- Get previous available day price from price_history as fallback
+      LEFT JOIN LATERAL (
+        SELECT date, close, volume, adjusted_close
+        FROM price_history
+        WHERE symbol = w.symbol
+        ORDER BY date DESC
+        OFFSET 1
+        LIMIT 1
+      ) previous_price ON true
       
-      -- Get today's snapshot
+      -- Get today's snapshot (ONLY from CURRENT_DATE)
       LEFT JOIN LATERAL (
         SELECT *
         FROM wishlist_history
@@ -69,16 +93,16 @@ router.get('/', authMiddleware, async (req, res) => {
         LIMIT 1
       ) today_snapshot ON true
       
-      -- Get yesterday's snapshot
+      -- Get yesterday's snapshot (ONLY from CURRENT_DATE - 1)
       LEFT JOIN LATERAL (
         SELECT *
         FROM wishlist_history
         WHERE user_id = w.user_id 
           AND symbol = w.symbol
-          AND snapshot_date < CURRENT_DATE
-        ORDER BY snapshot_date DESC
+          AND snapshot_date = CURRENT_DATE - INTERVAL '1 day'
         LIMIT 1
       ) yesterday_snapshot ON true
+
       
       WHERE w.user_id = $1
       ORDER BY w.added_at DESC
